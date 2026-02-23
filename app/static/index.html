@@ -958,8 +958,6 @@
                 document.getElementById('realized-sub').textContent =
                     totalTrades > 0 ? `From ${totalTrades} trade${totalTrades > 1 ? 's' : ''}` : 'No closed trades';
 
-                document.getElementById('positions-count').textContent = posCount;
-
                 addLog('ok', `System healthy | Cash: A$${cash.toFixed(2)} | Positions: A$${posValue.toFixed(2)}`);
             } catch (err) {
                 document.getElementById('status-text').textContent = 'OFFLINE';
@@ -1116,11 +1114,8 @@
 
                 if (positions.length === 0) {
                     body.innerHTML = '<tr><td colspan="7" style="color:#484f58; text-align:center;">No open positions</td></tr>';
-                    document.getElementById('positions-count').textContent = '0';
                     return;
                 }
-
-                document.getElementById('positions-count').textContent = positions.length;
 
                 body.innerHTML = positions.map(p => {
                     const entry = (p.entry_price_cents / 100).toFixed(2);
