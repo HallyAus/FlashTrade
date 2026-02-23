@@ -36,7 +36,10 @@ async def resume_trading():
 @router.get("/status")
 async def system_status():
     """Get current system status including auto-trade state."""
-    auto_status = await _auto_trader.get_status()
+    try:
+        auto_status = await _auto_trader.get_status()
+    except Exception:
+        auto_status = {"enabled": False, "symbols": [], "error": "Redis/DB unavailable"}
     return {
         "halted": risk_manager.is_halted,
         "paused": risk_manager.is_paused,

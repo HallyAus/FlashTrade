@@ -24,11 +24,18 @@ logger = logging.getLogger(__name__)
 
 # Recommended symbols for auto-trading
 WATCHED_SYMBOLS = [
+    # Crypto — high liquidity, 24/7, good for both strategies
     {"symbol": "BTC", "market": "crypto", "timeframe": "1h"},
     {"symbol": "ETH", "market": "crypto", "timeframe": "1h"},
     {"symbol": "SOL", "market": "crypto", "timeframe": "1h"},
+    {"symbol": "XRP", "market": "crypto", "timeframe": "1h"},
+    {"symbol": "DOGE", "market": "crypto", "timeframe": "1h"},
+    # ASX — blue chips, liquid, good for mean reversion
     {"symbol": "BHP.AX", "market": "asx", "timeframe": "1d"},
     {"symbol": "CBA.AX", "market": "asx", "timeframe": "1d"},
+    {"symbol": "CSL.AX", "market": "asx", "timeframe": "1d"},
+    {"symbol": "WDS.AX", "market": "asx", "timeframe": "1d"},
+    {"symbol": "FMG.AX", "market": "asx", "timeframe": "1d"},
 ]
 
 REDIS_KEY_AUTO_TRADE = "flashtrade:auto_trade"
