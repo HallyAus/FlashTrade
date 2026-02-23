@@ -1,0 +1,47 @@
+# Web framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Database
+sqlalchemy[asyncio]>=2.0.25
+asyncpg>=0.29.0
+alembic>=1.13.0
+
+# Task queue
+celery>=5.3.6
+redis>=5.0.1
+
+# Data feeds
+yfinance>=0.2.36
+ccxt>=4.2.0
+alpaca-trade-api>=3.0.0
+
+# Data processing
+pandas>=2.2.0
+numpy>=1.26.0
+
+# Backtesting
+backtrader>=1.9.78
+
+# Configuration
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# HTTP client
+httpx>=0.26.0
+
+# Timezone
+pytz>=2024.1
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+
+# Code quality
+black>=24.1.0
+isort>=5.13.0
+mypy>=1.8.0
+
+# Logging
+structlog>=24.1.0
