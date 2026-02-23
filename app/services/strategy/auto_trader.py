@@ -63,7 +63,11 @@ class AutoTrader:
         logger.info("Auto-trade %s", "enabled" if enabled else "disabled")
 
     async def get_status(self) -> dict:
-        """Get auto-trade status with regime info for all watched symbols."""
+        """Get auto-trade status with regime info for all watched symbols.
+
+        Detects regimes on-demand if no cached data exists, so the dashboard
+        always shows useful info even before auto-trade is enabled.
+        """
         r = await self._get_redis()
         enabled = await r.get(REDIS_KEY_AUTO_TRADE) == "1"
 
@@ -71,13 +75,25 @@ class AutoTrader:
         for sym in WATCHED_SYMBOLS:
             regime = await r.get(f"{REDIS_KEY_REGIME_PREFIX}{sym['symbol']}")
             last_signal = await r.get(f"{REDIS_KEY_LAST_SIGNAL_PREFIX}{sym['symbol']}")
+
+            # Detect regime on-demand if not cached
+            if not regime:
+                try:
+                    df = await self._load_ohlcv(sym["symbol"], sym["timeframe"], lookback_days=60)
+                    if df is not None and len(df) >= 30:
+                        detected = detect_regime(df)
+                        regime = detected.value
+                        await r.set(f"{REDIS_KEY_REGIME_PREFIX}{sym['symbol']}", regime, ex=3600)
+                except Exception:
+                    regime = None
+
             symbols_status.append({
                 "symbol": sym["symbol"],
                 "market": sym["market"],
                 "timeframe": sym["timeframe"],
                 "regime": regime or "unknown",
                 "active_strategy": self._strategy_for_regime(regime).name if regime else "none",
-                "last_signal": last_signal or "none",
+                "last_signal": last_signal or "hold",
             })
 
         return {
