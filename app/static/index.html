@@ -343,6 +343,16 @@
         .symbol-signal.buy { color: #3fb950; }
         .symbol-signal.sell { color: #f85149; }
         .symbol-signal.hold { color: #9ca3af; }
+        .market-closed-tag {
+            font-size: 10px;
+            font-weight: 600;
+            color: #d29922;
+            background: rgba(187, 128, 9, 0.15);
+            padding: 1px 6px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-bottom: 2px;
+        }
 
         /* Proximity indicator */
         .proximity-bar {
@@ -1033,6 +1043,8 @@
             // Incremental update hashes
             lastPositionsHash: '',
             lastSymbolsHash: '',
+            // Market open/closed state keyed by market name
+            marketOpen: { crypto: true, asx: false, us: false },
         },
 
         // --- Centralized API helper with HTTP status checking ---
@@ -1681,6 +1693,11 @@
                 const labels = { asx: 'ASX', us: 'US Stocks', crypto: 'Crypto' };
                 const brokers = { asx: 'Signals Only', us: 'Alpaca', crypto: 'Swyftx' };
 
+                // Cache open/closed state for the symbols table
+                for (const m of (data.markets || [])) {
+                    this.state.marketOpen[m.market] = m.is_open;
+                }
+
                 const frag = document.createDocumentFragment();
                 for (const m of (data.markets || [])) {
                     const card = document.createElement('div');
@@ -1915,6 +1932,15 @@
 
                     // Signal
                     const tdSignal = document.createElement('td');
+                    const isOpen = this.state.marketOpen[s.market] !== false;
+
+                    if (!isOpen) {
+                        const closedTag = document.createElement('div');
+                        closedTag.className = 'market-closed-tag';
+                        closedTag.textContent = 'MARKET CLOSED';
+                        tdSignal.appendChild(closedTag);
+                    }
+
                     const signalParts = (s.last_signal || 'hold').split('@');
                     const signalAction = signalParts[0];
                     const signalSpan = document.createElement('span');
@@ -1924,6 +1950,7 @@
                         signalText += ' @ A$' + (parseInt(signalParts[1]) / 100).toFixed(2);
                     }
                     signalSpan.textContent = signalText;
+                    if (!isOpen) signalSpan.style.opacity = '0.5';
                     tdSignal.appendChild(signalSpan);
 
                     // Proximity
@@ -2215,15 +2242,16 @@
                 }
             });
 
-            // Initial data fetch
+            // Initial data fetch — market status first so symbols table
+            // knows which markets are open before it renders
             this.initChart();
             this.loadChart();
+            this.fetchMarketStatus();
             this.fetchStatus();
             this.fetchPrices();
             this.fetchPositions();
             this.fetchAutoTradeStatus();
             this.fetchRecentTrades();
-            this.fetchMarketStatus();
             this.fetchDataQuality();
             this.updateNextCheck();
 
