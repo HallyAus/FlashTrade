@@ -4,6 +4,7 @@ This is the brain that ties together regime detection, strategies, and position 
 Auto-trade state is stored in Redis for cross-process access (FastAPI + Celery).
 """
 
+import json
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -15,7 +16,7 @@ from app.config import settings
 from app.database import async_session
 from app.models.ohlcv import OHLCV
 from app.services.strategy.base import Signal
-from app.services.strategy.indicators import atr
+from app.services.strategy.indicators import atr, bollinger_bands, macd, rsi
 from app.services.strategy.meanrev import MeanReversionStrategy
 from app.services.strategy.momentum import MomentumStrategy
 from app.services.strategy.regime import RegimeType, detect_regime
@@ -41,6 +42,7 @@ WATCHED_SYMBOLS = [
 REDIS_KEY_AUTO_TRADE = "flashtrade:auto_trade"
 REDIS_KEY_REGIME_PREFIX = "flashtrade:regime:"
 REDIS_KEY_LAST_SIGNAL_PREFIX = "flashtrade:signal:"
+REDIS_KEY_PROXIMITY_PREFIX = "flashtrade:proximity:"
 
 
 class AutoTrader:
@@ -92,7 +94,7 @@ class AutoTrader:
             regime = await r.get(f"{REDIS_KEY_REGIME_PREFIX}{sym['symbol']}")
             last_signal = await r.get(f"{REDIS_KEY_LAST_SIGNAL_PREFIX}{sym['symbol']}")
 
-            # Detect regime on-demand if not cached
+            # Detect regime and proximity on-demand if not cached
             if not regime:
                 try:
                     df = await self._load_ohlcv(sym["symbol"], sym["timeframe"], lookback_days=60)
@@ -100,8 +102,16 @@ class AutoTrader:
                         detected = detect_regime(df)
                         regime = detected.value
                         await r.set(f"{REDIS_KEY_REGIME_PREFIX}{sym['symbol']}", regime, ex=3600)
+                        # Also compute proximity while we have the data
+                        strat_name = self._strategy_for_regime(regime).name
+                        prox = self._compute_proximity(df, strat_name)
+                        await r.set(f"{REDIS_KEY_PROXIMITY_PREFIX}{sym['symbol']}", json.dumps(prox), ex=3600)
                 except Exception:
                     regime = None
+
+            # Load signal proximity data
+            proximity_raw = await r.get(f"{REDIS_KEY_PROXIMITY_PREFIX}{sym['symbol']}")
+            proximity = json.loads(proximity_raw) if proximity_raw else None
 
             symbols_status.append({
                 "symbol": sym["symbol"],
@@ -110,6 +120,7 @@ class AutoTrader:
                 "regime": regime or "unknown",
                 "active_strategy": self._strategy_for_regime(regime).name if regime else "none",
                 "last_signal": last_signal or "hold",
+                "proximity": proximity,
             })
 
         last_evaluated = await r.get("flashtrade:last_evaluated_at")
@@ -153,6 +164,14 @@ class AutoTrader:
         strategy = self._strategy_for_regime(regime.value)
         logger.info("Symbol %s using strategy: %s", symbol, strategy.name)
 
+        # Compute and cache signal proximity (how close to a buy trigger)
+        proximity = self._compute_proximity(df, strategy.name)
+        await r.set(
+            f"{REDIS_KEY_PROXIMITY_PREFIX}{symbol}",
+            json.dumps(proximity),
+            ex=3600,
+        )
+
         # Generate signals
         signals = strategy.generate_signals(df, symbol, market)
         if not signals:
@@ -177,6 +196,112 @@ class AutoTrader:
             best.action, best.symbol, best.price_cents, best.strategy_name, best.strength,
         )
         return best
+
+    def _compute_proximity(self, df: pd.DataFrame, strategy_name: str) -> dict:
+        """Compute how close current indicators are to triggering a buy signal.
+
+        Returns a dict with conditions, each showing current value, target, and whether met.
+        """
+        close = df["close"]
+        rsi_values = rsi(close)
+        current_rsi = float(rsi_values.iloc[-1]) if not pd.isna(rsi_values.iloc[-1]) else None
+        prev_rsi = float(rsi_values.iloc[-2]) if len(rsi_values) >= 2 and not pd.isna(rsi_values.iloc[-2]) else None
+
+        if strategy_name == "momentum":
+            _, _, macd_hist = macd(close)
+            current_hist = float(macd_hist.iloc[-1]) if not pd.isna(macd_hist.iloc[-1]) else None
+            prev_hist = float(macd_hist.iloc[-2]) if len(macd_hist) >= 2 and not pd.isna(macd_hist.iloc[-2]) else None
+
+            conditions = []
+
+            # Condition 1: RSI was below 30 (setup)
+            rsi_below_30 = prev_rsi is not None and prev_rsi < 30
+            conditions.append({
+                "name": "RSI below 30 (setup)",
+                "current": round(prev_rsi, 1) if prev_rsi is not None else None,
+                "target": 30,
+                "met": rsi_below_30,
+                "direction": "below",
+            })
+
+            # Condition 2: RSI crosses above 30 (trigger)
+            rsi_cross = rsi_below_30 and current_rsi is not None and current_rsi >= 30
+            conditions.append({
+                "name": "RSI crosses above 30",
+                "current": round(current_rsi, 1) if current_rsi is not None else None,
+                "target": 30,
+                "met": rsi_cross,
+                "direction": "above",
+            })
+
+            # Condition 3: MACD histogram turns positive
+            hist_positive = (
+                prev_hist is not None
+                and current_hist is not None
+                and prev_hist <= 0
+                and current_hist > 0
+            )
+            conditions.append({
+                "name": "MACD histogram turns positive",
+                "current": round(current_hist, 0) if current_hist is not None else None,
+                "target": 0,
+                "met": hist_positive,
+                "direction": "above",
+            })
+
+            met_count = sum(1 for c in conditions if c["met"])
+            return {
+                "strategy": "momentum",
+                "conditions": conditions,
+                "conditions_met": met_count,
+                "conditions_total": len(conditions),
+                "rsi": round(current_rsi, 1) if current_rsi is not None else None,
+                "macd_hist": round(current_hist, 0) if current_hist is not None else None,
+            }
+
+        else:  # meanrev
+            upper, middle, lower, _ = bollinger_bands(close)
+            current_close = float(close.iloc[-1])
+            current_lower = float(lower.iloc[-1]) if not pd.isna(lower.iloc[-1]) else None
+            current_middle = float(middle.iloc[-1]) if not pd.isna(middle.iloc[-1]) else None
+
+            conditions = []
+
+            # Condition 1: Price below lower BB
+            below_bb = current_lower is not None and current_close < current_lower
+            bb_distance_pct = None
+            if current_lower and current_lower > 0:
+                bb_distance_pct = round((current_close - current_lower) / current_lower * 100, 2)
+            conditions.append({
+                "name": "Price below lower BB",
+                "current": round(current_close, 0),
+                "target": round(current_lower, 0) if current_lower else None,
+                "met": below_bb,
+                "direction": "below",
+                "distance_pct": bb_distance_pct,
+            })
+
+            # Condition 2: RSI < 35
+            rsi_oversold = current_rsi is not None and current_rsi < 35
+            conditions.append({
+                "name": "RSI below 35 (oversold)",
+                "current": round(current_rsi, 1) if current_rsi is not None else None,
+                "target": 35,
+                "met": rsi_oversold,
+                "direction": "below",
+            })
+
+            met_count = sum(1 for c in conditions if c["met"])
+            return {
+                "strategy": "meanrev",
+                "conditions": conditions,
+                "conditions_met": met_count,
+                "conditions_total": len(conditions),
+                "rsi": round(current_rsi, 1) if current_rsi is not None else None,
+                "price": round(current_close, 0),
+                "bb_lower": round(current_lower, 0) if current_lower else None,
+                "bb_middle": round(current_middle, 0) if current_middle else None,
+            }
 
     def _apply_position_sizing(self, signal: Signal, df: pd.DataFrame) -> Signal:
         """Size the position based on ATR and portfolio risk budget.

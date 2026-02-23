@@ -344,6 +344,38 @@
         .symbol-signal.sell { color: #f85149; }
         .symbol-signal.hold { color: #9ca3af; }
 
+        /* Proximity indicator */
+        .proximity-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+        }
+        .proximity-dots {
+            display: flex;
+            gap: 3px;
+        }
+        .proximity-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #1e2836;
+            border: 1px solid #30363d;
+        }
+        .proximity-dot.met {
+            background: #3fb950;
+            border-color: #3fb950;
+        }
+        .proximity-label {
+            color: #6b7280;
+            white-space: nowrap;
+        }
+        .proximity-detail {
+            font-size: 10px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
         /* Signal log */
         .signal-log {
             margin-top: 12px;
@@ -863,11 +895,12 @@
                             <th title="Market condition detected by ADX + Bollinger Band analysis">Regime</th>
                             <th title="Trading strategy selected based on market regime">Strategy</th>
                             <th title="Latest signal: buy/sell/hold">Signal</th>
-                            <th title="Candle interval used for analysis">Timeframe</th>
+                            <th title="How close indicators are to triggering a buy signal">Buy Proximity</th>
+                            <th title="Candle interval used for analysis">TF</th>
                         </tr>
                     </thead>
                     <tbody id="symbols-body">
-                        <tr><td colspan="5" style="color:#6b7280; text-align:center;">Loading...</td></tr>
+                        <tr><td colspan="6" style="color:#6b7280; text-align:center;">Loading...</td></tr>
                     </tbody>
                 </table>
                 <div class="card-header" style="margin-top:16px;">Trade Log</div>
@@ -1769,7 +1802,7 @@
                     body.innerHTML = '';
                     const tr = document.createElement('tr');
                     const td = document.createElement('td');
-                    td.colSpan = 5;
+                    td.colSpan = 6;
                     td.style.cssText = 'color:#6b7280; text-align:center;';
                     td.textContent = 'No symbols configured';
                     tr.appendChild(td);
@@ -1817,6 +1850,46 @@
                     signalSpan.textContent = signalText;
                     tdSignal.appendChild(signalSpan);
 
+                    // Proximity
+                    const tdProx = document.createElement('td');
+                    const prox = s.proximity;
+                    if (prox && prox.conditions) {
+                        const bar = document.createElement('div');
+                        bar.className = 'proximity-bar';
+
+                        const dots = document.createElement('div');
+                        dots.className = 'proximity-dots';
+                        for (const c of prox.conditions) {
+                            const dot = document.createElement('div');
+                            dot.className = 'proximity-dot' + (c.met ? ' met' : '');
+                            dot.title = c.name + ': ' + (c.current != null ? c.current : '?') + (c.met ? ' (met)' : '');
+                            dots.appendChild(dot);
+                        }
+                        bar.appendChild(dots);
+
+                        const label = document.createElement('span');
+                        label.className = 'proximity-label';
+                        label.textContent = prox.conditions_met + '/' + prox.conditions_total;
+                        bar.appendChild(label);
+
+                        tdProx.appendChild(bar);
+
+                        // Detail line
+                        const detail = document.createElement('div');
+                        detail.className = 'proximity-detail';
+                        if (prox.strategy === 'momentum') {
+                            detail.textContent = 'RSI ' + (prox.rsi != null ? prox.rsi : '?') + ' | MACD ' + (prox.macd_hist != null ? prox.macd_hist : '?');
+                        } else {
+                            const bbDist = prox.bb_lower ? ((prox.price - prox.bb_lower) / prox.bb_lower * 100).toFixed(1) : '?';
+                            detail.textContent = 'RSI ' + (prox.rsi != null ? prox.rsi : '?') + ' | BB ' + bbDist + '%';
+                        }
+                        tdProx.appendChild(detail);
+                    } else {
+                        tdProx.style.color = '#6b7280';
+                        tdProx.style.fontSize = '11px';
+                        tdProx.textContent = 'awaiting data';
+                    }
+
                     // Timeframe
                     const tdTF = document.createElement('td');
                     tdTF.style.color = '#6b7280';
@@ -1826,6 +1899,7 @@
                     tr.appendChild(tdRegime);
                     tr.appendChild(tdStrategy);
                     tr.appendChild(tdSignal);
+                    tr.appendChild(tdProx);
                     tr.appendChild(tdTF);
                     frag.appendChild(tr);
                 }
@@ -1837,7 +1911,7 @@
                 body.innerHTML = '';
                 const tr = document.createElement('tr');
                 const td = document.createElement('td');
-                td.colSpan = 5;
+                td.colSpan = 6;
                 td.className = 'table-error';
                 td.textContent = 'Failed to load symbols';
                 tr.appendChild(td);
