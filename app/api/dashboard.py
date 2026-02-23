@@ -1,4 +1,4 @@
-"""Dashboard API routes — portfolio overview, live prices, health."""
+"""Dashboard API routes — portfolio overview, live prices, health, data quality."""
 
 import logging
 from datetime import datetime, timezone
@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter
 
 from app.services.data.ccxt_feed import CCXTFeed
+from app.services.data.market_calendar import market_status_summary
 from app.services.data.yfinance_feed import YFinanceFeed
 
 logger = logging.getLogger(__name__)
@@ -91,3 +92,55 @@ async def get_live_prices():
         "errors": errors,
         "fetched_at_utc": datetime.now(timezone.utc).isoformat(),
     }
+
+
+@router.get("/market-status")
+async def get_market_status():
+    """Get open/closed status for all markets with session times."""
+    return {
+        "markets": market_status_summary(),
+        "checked_at_utc": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.get("/data-quality")
+async def get_data_quality():
+    """Run data quality checks and return report.
+
+    Checks: missing candles, stale data, price outliers.
+    """
+    from app.services.data.quality import run_quality_checks
+
+    try:
+        report = await run_quality_checks(lookback_hours=168)
+        return {
+            "checked_at_utc": report.checked_at_utc,
+            "total_issues": report.total_issues,
+            "errors": report.errors,
+            "warnings": report.warnings,
+            "symbols": [
+                {
+                    "symbol": s.symbol,
+                    "market": s.market,
+                    "timeframe": s.timeframe,
+                    "total_rows": s.total_rows,
+                    "expected_rows": s.expected_rows,
+                    "missing_pct": s.missing_pct,
+                    "latest_candle_utc": s.latest_candle_utc,
+                    "staleness_minutes": s.staleness_minutes,
+                    "outlier_count": s.outlier_count,
+                    "issues": [
+                        {
+                            "severity": i.severity,
+                            "check": i.check,
+                            "message": i.message,
+                        }
+                        for i in s.issues
+                    ],
+                }
+                for s in report.symbols
+            ],
+        }
+    except Exception as e:
+        logger.error("Data quality check failed: %s", e)
+        return {"error": str(e), "total_issues": -1}

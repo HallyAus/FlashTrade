@@ -286,6 +286,66 @@
             border-radius: 4px;
             margin-top: 8px;
         }
+
+        /* Market session status */
+        .session-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .session-card {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 6px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .session-market { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+        .session-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .session-badge.open { background: rgba(46, 160, 67, 0.15); color: #3fb950; }
+        .session-badge.closed { background: rgba(248, 81, 73, 0.15); color: #f85149; }
+        .session-detail { font-size: 11px; color: #484f58; margin-top: 6px; }
+
+        /* Data health */
+        .health-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .health-item {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 6px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .health-label { font-size: 13px; color: #e1e4e8; }
+        .health-label small { color: #484f58; font-size: 11px; }
+        .health-stat { font-size: 12px; font-weight: 600; }
+        .health-stat.ok { color: #3fb950; }
+        .health-stat.warn { color: #d29922; }
+        .health-stat.error { color: #f85149; }
+        .health-summary {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+            font-size: 13px;
+        }
+        .health-summary span { color: #8b949e; }
     </style>
 </head>
 <body>
@@ -336,41 +396,31 @@
             </div>
 
             <div class="card markets-card">
-                <div class="card-header">Markets</div>
-                <table class="market-table">
-                    <thead>
-                        <tr>
-                            <th>Market</th>
-                            <th>Broker</th>
-                            <th>Instruments</th>
-                            <th>Hours (AEST)</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>US Stocks</td>
-                            <td>Alpaca</td>
-                            <td>SPY, AAPL, MSFT, NVDA, TSLA</td>
-                            <td>00:30 - 07:00</td>
-                            <td><span class="market-status pending"><span class="dot yellow"></span>KYC Pending</span></td>
-                        </tr>
-                        <tr>
-                            <td>Crypto</td>
-                            <td>Swyftx</td>
-                            <td>BTC, ETH, SOL</td>
-                            <td>24/7</td>
-                            <td><span class="market-status pending"><span class="dot yellow"></span>KYC Pending</span></td>
-                        </tr>
-                        <tr>
-                            <td>ASX</td>
-                            <td>Signals Only</td>
-                            <td>BHP.AX, CBA.AX, CSL.AX</td>
-                            <td>10:00 - 16:00</td>
-                            <td><span class="market-status ready"><span class="dot green"></span>Data Ready</span></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="card-header">Market Sessions <span id="session-time" style="font-size:11px; color:#484f58; text-transform:none; letter-spacing:0;"></span></div>
+                <div class="session-grid" id="session-grid">
+                    <div class="session-card">
+                        <div class="session-market">ASX</div>
+                        <div class="session-badge closed">Loading...</div>
+                    </div>
+                    <div class="session-card">
+                        <div class="session-market">US</div>
+                        <div class="session-badge closed">Loading...</div>
+                    </div>
+                    <div class="session-card">
+                        <div class="session-market">Crypto</div>
+                        <div class="session-badge open">24/7</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card markets-card">
+                <div class="card-header">Data Health <span id="dq-status" style="font-size:11px; color:#484f58; text-transform:none; letter-spacing:0;"></span></div>
+                <div class="health-summary" id="health-summary"></div>
+                <div class="health-grid" id="health-grid">
+                    <div class="health-item">
+                        <span class="health-label">Loading data quality checks...</span>
+                    </div>
+                </div>
             </div>
 
             <div class="card log-card">
@@ -386,7 +436,7 @@
         </div>
 
         <div class="footer">
-            <span>FlashTrade v0.1.0 &mdash; Day 1 of 30</span>
+            <span>FlashTrade v0.3.0 &mdash; Day 3 of 30</span>
             <span>
                 <a href="https://github.com/HallyAus/FlashTrade" target="_blank">GitHub</a>
                 &nbsp;&middot;&nbsp;
@@ -538,15 +588,114 @@
             }
         }
 
+        async function fetchMarketStatus() {
+            try {
+                const data = await fetch(`${API_BASE}/api/dashboard/market-status`).then(r => r.json());
+                const grid = document.getElementById('session-grid');
+
+                const labels = { asx: 'ASX', us: 'US Stocks', crypto: 'Crypto' };
+                const brokers = { asx: 'Signals Only', us: 'Alpaca', crypto: 'Swyftx' };
+
+                let html = '';
+                for (const m of (data.markets || [])) {
+                    const badge = m.is_open
+                        ? '<span class="session-badge open">OPEN</span>'
+                        : '<span class="session-badge closed">CLOSED</span>';
+
+                    let detail = m.local_time;
+                    if (m.closes_in_minutes) {
+                        const h = Math.floor(m.closes_in_minutes / 60);
+                        const mins = m.closes_in_minutes % 60;
+                        detail += ` · closes in ${h}h ${mins}m`;
+                    } else if (m.opens_in_minutes) {
+                        const h = Math.floor(m.opens_in_minutes / 60);
+                        const mins = m.opens_in_minutes % 60;
+                        detail += ` · opens in ${h}h ${mins}m`;
+                    }
+
+                    html += `
+                        <div class="session-card">
+                            <div class="session-market">${labels[m.market] || m.market}</div>
+                            ${badge}
+                            <div class="session-detail">${detail}</div>
+                            <div class="session-detail">${brokers[m.market] || ''}</div>
+                        </div>
+                    `;
+                }
+                grid.innerHTML = html;
+            } catch (err) {
+                addLog('warn', `Market status fetch failed: ${err.message}`);
+            }
+        }
+
+        async function fetchDataQuality() {
+            try {
+                const data = await fetch(`${API_BASE}/api/dashboard/data-quality`).then(r => r.json());
+                const grid = document.getElementById('health-grid');
+                const summary = document.getElementById('health-summary');
+                const status = document.getElementById('dq-status');
+
+                if (data.error) {
+                    grid.innerHTML = `<div class="health-item"><span class="health-label">Error: ${data.error}</span></div>`;
+                    return;
+                }
+
+                // Summary line
+                const issues = data.total_issues || 0;
+                const errors = data.errors || 0;
+                const warnings = data.warnings || 0;
+                const symbols = (data.symbols || []).length;
+
+                let summaryClass = 'ok';
+                if (errors > 0) summaryClass = 'error';
+                else if (warnings > 0) summaryClass = 'warn';
+
+                summary.innerHTML = `
+                    <span>${symbols} feeds checked</span>
+                    <span class="health-stat ${summaryClass}">${issues === 0 ? 'All healthy' : `${errors} errors, ${warnings} warnings`}</span>
+                `;
+
+                const t = new Date(data.checked_at_utc);
+                status.textContent = ' -- checked ' + t.toLocaleTimeString('en-AU', { hour12: false, timeZone: 'Australia/Sydney' }) + ' AEST';
+
+                // Per-symbol items
+                let html = '';
+                for (const s of (data.symbols || [])) {
+                    const staleClass = s.staleness_minutes > 60 ? 'warn' : 'ok';
+                    const missingClass = s.missing_pct > 5 ? 'warn' : 'ok';
+                    const issueCount = (s.issues || []).length;
+                    const statusClass = issueCount > 0 ? (s.issues.some(i => i.severity === 'error') ? 'error' : 'warn') : 'ok';
+                    const statusLabel = issueCount > 0 ? `${issueCount} issue${issueCount > 1 ? 's' : ''}` : 'OK';
+
+                    html += `
+                        <div class="health-item">
+                            <div class="health-label">
+                                ${s.symbol} <small>${s.timeframe}</small><br>
+                                <small>${s.total_rows.toLocaleString()} rows · ${s.staleness_minutes}m ago</small>
+                            </div>
+                            <span class="health-stat ${statusClass}">${statusLabel}</span>
+                        </div>
+                    `;
+                }
+                grid.innerHTML = html || '<div class="health-item"><span class="health-label">No data yet — run backfill first</span></div>';
+            } catch (err) {
+                addLog('warn', `Data quality fetch failed: ${err.message}`);
+            }
+        }
+
         // Initial fetch
         document.getElementById('log-entries').innerHTML = '';
         addLog('info', 'FlashTrade dashboard loaded');
         fetchStatus();
         fetchPrices();
+        fetchMarketStatus();
+        fetchDataQuality();
 
         // Poll every 30 seconds
         setInterval(fetchStatus, 30000);
         setInterval(fetchPrices, 30000);
+        setInterval(fetchMarketStatus, 60000);
+        setInterval(fetchDataQuality, 300000); // every 5 min
     </script>
 </body>
 </html>
