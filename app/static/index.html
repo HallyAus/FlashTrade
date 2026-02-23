@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlashTrade</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+            background: #0a0e17;
+            color: #e1e4e8;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #1e2836;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #58a6ff;
+        }
+
+        .logo span { color: #f0883e; }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-badge.online {
+            background: rgba(46, 160, 67, 0.15);
+            color: #3fb950;
+            border: 1px solid rgba(46, 160, 67, 0.3);
+        }
+
+        .status-badge.offline {
+            background: rgba(248, 81, 73, 0.15);
+            color: #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.3);
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #3fb950;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Cards grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .card-header {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8b949e;
+            margin-bottom: 12px;
+        }
+
+        .card-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #e1e4e8;
+        }
+
+        .card-value.green { color: #3fb950; }
+        .card-value.blue { color: #58a6ff; }
+        .card-value.orange { color: #f0883e; }
+
+        .card-sub {
+            font-size: 13px;
+            color: #8b949e;
+            margin-top: 4px;
+        }
+
+        /* Markets table */
+        .markets-card {
+            grid-column: 1 / -1;
+        }
+
+        .market-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        .market-table th {
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8b949e;
+            padding: 8px 12px;
+            border-bottom: 1px solid #21262d;
+        }
+
+        .market-table td {
+            padding: 12px;
+            border-bottom: 1px solid #21262d;
+            font-size: 14px;
+        }
+
+        .market-table tr:last-child td { border-bottom: none; }
+
+        .market-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .market-status.ready {
+            background: rgba(46, 160, 67, 0.15);
+            color: #3fb950;
+        }
+
+        .market-status.pending {
+            background: rgba(187, 128, 9, 0.15);
+            color: #d29922;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .dot.green { background: #3fb950; }
+        .dot.yellow { background: #d29922; }
+
+        /* System log */
+        .log-card {
+            grid-column: 1 / -1;
+        }
+
+        .log-entries {
+            margin-top: 12px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 12px;
+            padding: 4px 0;
+        }
+
+        .log-time { color: #484f58; min-width: 85px; }
+        .log-level { min-width: 50px; font-weight: 600; }
+        .log-level.info { color: #58a6ff; }
+        .log-level.ok { color: #3fb950; }
+        .log-level.warn { color: #d29922; }
+        .log-msg { color: #8b949e; }
+
+        /* Footer */
+        .footer {
+            margin-top: 40px;
+            padding: 20px 0;
+            border-top: 1px solid #1e2836;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #484f58;
+        }
+
+        .footer a { color: #58a6ff; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+
+        /* Kill switch */
+        .kill-btn {
+            background: rgba(248, 81, 73, 0.1);
+            color: #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.3);
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .kill-btn:hover {
+            background: rgba(248, 81, 73, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Flash<span>Trade</span></div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <button class="kill-btn" onclick="killSwitch()">KILL SWITCH</button>
+                <div class="status-badge online" id="status-badge">
+                    <div class="pulse"></div>
+                    <span id="status-text">LOADING...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">Portfolio Value</div>
+                <div class="card-value green" id="portfolio-value">--</div>
+                <div class="card-sub">Paper trading account</div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Today's P&L</div>
+                <div class="card-value" id="daily-pnl">$0.00</div>
+                <div class="card-sub">No trades yet</div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Trading Mode</div>
+                <div class="card-value orange" id="trading-mode">--</div>
+                <div class="card-sub">Safe mode active</div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Open Positions</div>
+                <div class="card-value blue" id="positions-count">0</div>
+                <div class="card-sub">Max $100 per position</div>
+            </div>
+
+            <div class="card markets-card">
+                <div class="card-header">Markets</div>
+                <table class="market-table">
+                    <thead>
+                        <tr>
+                            <th>Market</th>
+                            <th>Broker</th>
+                            <th>Instruments</th>
+                            <th>Hours (AEST)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>US Stocks</td>
+                            <td>Alpaca</td>
+                            <td>SPY, AAPL, MSFT, NVDA, TSLA</td>
+                            <td>00:30 - 07:00</td>
+                            <td><span class="market-status pending"><span class="dot yellow"></span>KYC Pending</span></td>
+                        </tr>
+                        <tr>
+                            <td>Crypto</td>
+                            <td>Swyftx</td>
+                            <td>BTC, ETH, SOL</td>
+                            <td>24/7</td>
+                            <td><span class="market-status pending"><span class="dot yellow"></span>KYC Pending</span></td>
+                        </tr>
+                        <tr>
+                            <td>ASX</td>
+                            <td>Signals Only</td>
+                            <td>BHP.AX, CBA.AX, CSL.AX</td>
+                            <td>10:00 - 16:00</td>
+                            <td><span class="market-status ready"><span class="dot green"></span>Data Ready</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card log-card">
+                <div class="card-header">System Log</div>
+                <div class="log-entries" id="log-entries">
+                    <div class="log-entry">
+                        <span class="log-time">--:--:--</span>
+                        <span class="log-level info">INFO</span>
+                        <span class="log-msg">Connecting to FlashTrade API...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <span>FlashTrade v0.1.0 &mdash; Day 1 of 30</span>
+            <span>
+                <a href="https://github.com/HallyAus/FlashTrade" target="_blank">GitHub</a>
+                &nbsp;&middot;&nbsp;
+                <a href="https://printforge.com.au" target="_blank">Printforge</a>
+            </span>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        function timeNow() {
+            return new Date().toLocaleTimeString('en-AU', {
+                hour12: false,
+                timeZone: 'Australia/Sydney'
+            });
+        }
+
+        function addLog(level, msg) {
+            const entries = document.getElementById('log-entries');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">${timeNow()}</span>
+                <span class="log-level ${level}">${level.toUpperCase()}</span>
+                <span class="log-msg">${msg}</span>
+            `;
+            entries.appendChild(entry);
+            // Keep last 10 entries
+            while (entries.children.length > 10) {
+                entries.removeChild(entries.firstChild);
+            }
+        }
+
+        async function fetchStatus() {
+            try {
+                const [root, portfolio, admin] = await Promise.all([
+                    fetch(`${API_BASE}/api`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/dashboard/portfolio`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/admin/status`).then(r => r.json()),
+                ]);
+
+                // Update status badge
+                const badge = document.getElementById('status-badge');
+                const statusText = document.getElementById('status-text');
+                if (admin.halted) {
+                    badge.className = 'status-badge offline';
+                    statusText.textContent = 'HALTED';
+                    badge.querySelector('.pulse').style.background = '#f85149';
+                } else {
+                    badge.className = 'status-badge online';
+                    statusText.textContent = 'ONLINE';
+                    badge.querySelector('.pulse').style.background = '#3fb950';
+                }
+
+                // Update cards
+                const value = portfolio.portfolio_value_cents / 100;
+                document.getElementById('portfolio-value').textContent =
+                    '$' + value.toLocaleString('en-AU', { minimumFractionDigits: 2 });
+
+                const pnl = portfolio.daily_pnl_cents / 100;
+                const pnlEl = document.getElementById('daily-pnl');
+                pnlEl.textContent = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
+                pnlEl.className = 'card-value ' + (pnl >= 0 ? 'green' : 'red');
+
+                document.getElementById('trading-mode').textContent =
+                    root.trading_mode.toUpperCase();
+                document.getElementById('positions-count').textContent =
+                    portfolio.positions.length;
+
+                addLog('ok', `System healthy | Mode: ${root.trading_mode} | Portfolio: $${value.toFixed(2)}`);
+            } catch (err) {
+                document.getElementById('status-text').textContent = 'OFFLINE';
+                document.getElementById('status-badge').className = 'status-badge offline';
+                addLog('warn', `API unreachable: ${err.message}`);
+            }
+        }
+
+        async function killSwitch() {
+            if (!confirm('KILL SWITCH: This will halt ALL trading immediately. Are you sure?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/kill-switch`, { method: 'POST' });
+                const data = await res.json();
+                addLog('warn', `KILL SWITCH ACTIVATED: ${data.message}`);
+                fetchStatus();
+            } catch (err) {
+                addLog('warn', `Kill switch failed: ${err.message}`);
+            }
+        }
+
+        // Initial fetch
+        document.getElementById('log-entries').innerHTML = '';
+        addLog('info', 'FlashTrade dashboard loaded');
+        fetchStatus();
+
+        // Poll every 30 seconds
+        setInterval(fetchStatus, 30000);
+    </script>
+</body>
+</html>
