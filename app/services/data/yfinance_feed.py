@@ -13,7 +13,7 @@ import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
-ASX_SYMBOLS = ["BHP.AX", "CBA.AX", "CSL.AX"]
+ASX_SYMBOLS = ["BHP.AX", "CBA.AX", "CSL.AX", "WDS.AX", "FMG.AX"]
 US_SYMBOLS = ["SPY", "AAPL", "NVDA"]
 CACHE_TTL_SECONDS = 120
 

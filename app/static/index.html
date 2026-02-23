@@ -80,6 +80,18 @@
             margin-top: 24px;
         }
 
+        /* Force top stats row to 4 columns */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+        }
+
         .card {
             background: #161b22;
             border: 1px solid #21262d;
@@ -247,32 +259,48 @@
         /* Recommended symbols */
         .symbols-card { grid-column: 1 / -1; }
 
-        .symbol-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
+        .symbols-table {
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 12px;
         }
 
-        .symbol-item {
-            background: #0d1117;
-            border: 1px solid #21262d;
-            border-radius: 6px;
-            padding: 14px;
+        .symbols-table th {
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8b949e;
+            padding: 8px 12px;
+            border-bottom: 1px solid #21262d;
         }
 
-        .symbol-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
+        .symbols-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #161b22;
+            font-size: 13px;
+        }
+
+        .symbols-table tr:hover {
+            background: rgba(88, 166, 255, 0.04);
         }
 
         .symbol-name {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 700;
             color: #e1e4e8;
         }
+
+        .symbol-market-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+
+        .symbol-market-tag.crypto { background: rgba(136, 87, 229, 0.2); color: #a371f7; }
+        .symbol-market-tag.asx { background: rgba(46, 160, 67, 0.2); color: #3fb950; }
 
         .regime-tag {
             font-size: 10px;
@@ -640,7 +668,7 @@
             </div>
         </div>
 
-        <div class="grid">
+        <div class="stats-row">
             <div class="card">
                 <div class="card-header">Cash Available</div>
                 <div class="card-value blue" id="cash-available">--</div>
@@ -664,7 +692,9 @@
                 <div class="card-value" id="realized-pnl">A$0.00</div>
                 <div class="card-sub" id="realized-sub">No closed trades</div>
             </div>
+        </div>
 
+        <div class="grid">
             <div class="card trade-card">
                 <div class="card-header">Trade</div>
                 <div class="trade-form">
@@ -674,6 +704,13 @@
                             <option value="BTC">BTC</option>
                             <option value="ETH">ETH</option>
                             <option value="SOL">SOL</option>
+                            <option value="XRP">XRP</option>
+                            <option value="DOGE">DOGE</option>
+                            <option value="BHP.AX">BHP.AX</option>
+                            <option value="CBA.AX">CBA.AX</option>
+                            <option value="CSL.AX">CSL.AX</option>
+                            <option value="WDS.AX">WDS.AX</option>
+                            <option value="FMG.AX">FMG.AX</option>
                         </select>
                     </div>
                     <div>
@@ -722,39 +759,33 @@
 
             <div class="card symbols-card">
                 <div class="card-header">
-                    Recommended Symbols
+                    Watched Symbols
                     <span id="symbols-status" style="font-size:11px; color:#484f58; text-transform:none; letter-spacing:0;"> -- auto-trade off</span>
                 </div>
-                <div class="regime-legend" style="display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; margin-bottom:14px; padding:10px 12px; background:#0d1117; border-radius:6px; border:1px solid #21262d;">
-                    <div style="font-size:11px;">
-                        <span class="regime-tag trending" style="margin-right:4px;">Trending</span>
-                        <span style="color:#8b949e;">Strong directional move — uses <strong style="color:#58a6ff;">Momentum</strong> (RSI + MACD)</span>
-                    </div>
-                    <div style="font-size:11px;">
-                        <span class="regime-tag ranging" style="margin-right:4px;">Ranging</span>
-                        <span style="color:#8b949e;">Bouncing in a range — uses <strong style="color:#a371f7;">Mean Reversion</strong> (Bollinger Bands)</span>
-                    </div>
-                    <div style="font-size:11px;">
-                        <span class="regime-tag volatile" style="margin-right:4px;">Volatile</span>
-                        <span style="color:#8b949e;">Choppy / uncertain — conservative sizing, fewer trades</span>
-                    </div>
-                    <div style="font-size:11px;">
-                        <span class="regime-tag unknown" style="margin-right:4px;">Unknown</span>
-                        <span style="color:#8b949e;">Not enough data yet — needs 30+ candles to classify</span>
-                    </div>
+                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; margin-bottom:12px; font-size:11px; color:#8b949e;">
+                    <span><span class="regime-tag trending">Trending</span> Momentum (RSI+MACD)</span>
+                    <span><span class="regime-tag ranging">Ranging</span> Mean Reversion (Bollinger)</span>
+                    <span><span class="regime-tag volatile">Volatile</span> Conservative</span>
+                    <span><span class="regime-tag unknown">Unknown</span> Needs data</span>
                 </div>
-                <div class="symbol-grid" id="symbol-grid">
-                    <div class="symbol-item">
-                        <div class="symbol-header">
-                            <span class="symbol-name">Loading...</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-header" style="margin-top:16px;">Signal Log</div>
+                <table class="symbols-table" id="symbols-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Regime</th>
+                            <th>Strategy</th>
+                            <th>Signal</th>
+                            <th>Timeframe</th>
+                        </tr>
+                    </thead>
+                    <tbody id="symbols-body">
+                        <tr><td colspan="5" style="color:#484f58; text-align:center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+                <div class="card-header" style="margin-top:16px;">Trade Log</div>
                 <div class="signal-log" id="signal-log">
                     <div class="signal-entry">
-                        <span class="signal-time">--</span>
-                        <span class="signal-reason">Waiting for auto-trade to be enabled...</span>
+                        <span class="signal-reason" style="color:#484f58;">Waiting for trades...</span>
                     </div>
                 </div>
             </div>
@@ -775,9 +806,13 @@
                         <option value="BTC">BTC</option>
                         <option value="ETH">ETH</option>
                         <option value="SOL">SOL</option>
+                        <option value="XRP">XRP</option>
+                        <option value="DOGE">DOGE</option>
                         <option value="BHP.AX">BHP.AX</option>
                         <option value="CBA.AX">CBA.AX</option>
                         <option value="CSL.AX">CSL.AX</option>
+                        <option value="WDS.AX">WDS.AX</option>
+                        <option value="FMG.AX">FMG.AX</option>
                         <option value="SPY">SPY</option>
                         <option value="AAPL">AAPL</option>
                         <option value="NVDA">NVDA</option>
@@ -1349,32 +1384,32 @@
                 autoTradeEnabled = data.enabled;
                 updateAutoTradeUI();
 
-                const grid = document.getElementById('symbol-grid');
+                const body = document.getElementById('symbols-body');
                 const symbols = data.symbols || [];
 
                 if (symbols.length === 0) {
-                    grid.innerHTML = '<div class="symbol-item"><span class="symbol-name">No symbols configured</span></div>';
+                    body.innerHTML = '<tr><td colspan="5" style="color:#484f58; text-align:center;">No symbols configured</td></tr>';
                     return;
                 }
 
-                grid.innerHTML = symbols.map(s => {
+                body.innerHTML = symbols.map(s => {
                     const regimeClass = s.regime || 'unknown';
                     const signalParts = (s.last_signal || 'hold').split('@');
                     const signalAction = signalParts[0];
                     const signalClass = signalAction === 'buy' ? 'buy' : signalAction === 'sell' ? 'sell' : 'hold';
                     const signalPrice = signalParts[1] ? ` @ A$${(parseInt(signalParts[1]) / 100).toFixed(2)}` : '';
+                    const marketClass = s.market === 'crypto' ? 'crypto' : 'asx';
 
-                    return `
-                        <div class="symbol-item">
-                            <div class="symbol-header">
-                                <span class="symbol-name">${s.symbol}</span>
-                                <span class="regime-tag ${regimeClass}">${s.regime}</span>
-                            </div>
-                            <div class="symbol-strategy">Strategy: ${s.active_strategy}</div>
-                            <div class="symbol-signal ${signalClass}">Signal: ${signalAction}${signalPrice}</div>
-                            <div style="font-size:11px; color:#484f58; margin-top:4px;">${s.market} · ${s.timeframe}</div>
-                        </div>
-                    `;
+                    return `<tr>
+                        <td>
+                            <span class="symbol-name">${s.symbol}</span>
+                            <span class="symbol-market-tag ${marketClass}">${s.market}</span>
+                        </td>
+                        <td><span class="regime-tag ${regimeClass}">${s.regime}</span></td>
+                        <td style="color:#e1e4e8;">${s.active_strategy}</td>
+                        <td><span class="symbol-signal ${signalClass}">${signalAction}${signalPrice}</span></td>
+                        <td style="color:#484f58;">${s.timeframe}</td>
+                    </tr>`;
                 }).join('');
             } catch (err) {
                 // Silently fail for auto-trade status
