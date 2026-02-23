@@ -725,6 +725,24 @@
                     Recommended Symbols
                     <span id="symbols-status" style="font-size:11px; color:#484f58; text-transform:none; letter-spacing:0;"> -- auto-trade off</span>
                 </div>
+                <div class="regime-legend" style="display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; margin-bottom:14px; padding:10px 12px; background:#0d1117; border-radius:6px; border:1px solid #21262d;">
+                    <div style="font-size:11px;">
+                        <span class="regime-tag trending" style="margin-right:4px;">Trending</span>
+                        <span style="color:#8b949e;">Strong directional move — uses <strong style="color:#58a6ff;">Momentum</strong> (RSI + MACD)</span>
+                    </div>
+                    <div style="font-size:11px;">
+                        <span class="regime-tag ranging" style="margin-right:4px;">Ranging</span>
+                        <span style="color:#8b949e;">Bouncing in a range — uses <strong style="color:#a371f7;">Mean Reversion</strong> (Bollinger Bands)</span>
+                    </div>
+                    <div style="font-size:11px;">
+                        <span class="regime-tag volatile" style="margin-right:4px;">Volatile</span>
+                        <span style="color:#8b949e;">Choppy / uncertain — conservative sizing, fewer trades</span>
+                    </div>
+                    <div style="font-size:11px;">
+                        <span class="regime-tag unknown" style="margin-right:4px;">Unknown</span>
+                        <span style="color:#8b949e;">Not enough data yet — needs 30+ candles to classify</span>
+                    </div>
+                </div>
                 <div class="symbol-grid" id="symbol-grid">
                     <div class="symbol-item">
                         <div class="symbol-header">
