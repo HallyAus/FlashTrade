@@ -871,9 +871,10 @@
             </div>
 
             <div class="card symbols-card">
-                <div class="card-header">
-                    Watched Symbols
-                    <span id="symbols-status" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0;"> -- auto-trade off</span>
+                <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>Watched Symbols
+                    <span id="symbols-status" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0;"> -- auto-trade off</span></span>
+                    <button id="btn-backfill" style="font-size:11px; padding:4px 10px; background:#1e2836; border:1px solid #30363d; color:#58a6ff; border-radius:4px; cursor:pointer;" title="Load 6 months of historical price data for all symbols">Backfill Data</button>
                 </div>
                 <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; margin-bottom:4px; font-size:11px; color:#9ca3af;">
                     <span><span class="regime-tag trending" title="Strong directional price movement detected via ADX indicator">Trending</span> Momentum (RSI+MACD)</span>
@@ -1170,6 +1171,42 @@
                 this.fetchStatus();
             } catch (err) {
                 this.addLog('warn', 'Kill switch failed: ' + err.message);
+            }
+        },
+
+        async triggerBackfill() {
+            const btn = document.getElementById('btn-backfill');
+            if (btn.disabled) return;
+
+            btn.disabled = true;
+            btn.textContent = 'Backfilling...';
+            btn.style.opacity = '0.6';
+            this.addLog('info', 'Starting data backfill (6 months)... this may take a few minutes');
+
+            try {
+                const data = await this.api(`${this.CONFIG.API_BASE}/api/admin/backfill?period=6mo`, {
+                    method: 'POST',
+                });
+                if (data.status === 'completed') {
+                    this.addLog('info', 'Backfill complete: ' + data.total_rows + ' rows ingested');
+                    btn.textContent = 'Done!';
+                    btn.style.color = '#3fb950';
+                    // Refresh auto-trade status to update proximity indicators
+                    this.fetchAutoTradeStatus();
+                } else {
+                    this.addLog('warn', 'Backfill issue: ' + (data.message || 'unknown'));
+                    btn.textContent = 'Retry';
+                }
+            } catch (err) {
+                this.addLog('warn', 'Backfill failed: ' + err.message);
+                btn.textContent = 'Retry';
+            } finally {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                setTimeout(function() {
+                    btn.textContent = 'Backfill Data';
+                    btn.style.color = '#58a6ff';
+                }, 5000);
             }
         },
 
@@ -2101,6 +2138,7 @@
                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); self.toggleAutoTrade(); }
             });
             document.getElementById('kill-btn').addEventListener('click', function() { self.killSwitch(); });
+            document.getElementById('btn-backfill').addEventListener('click', function() { self.triggerBackfill(); });
             document.getElementById('btn-buy').addEventListener('click', function() { self.placeTrade('buy'); });
             document.getElementById('btn-sell').addEventListener('click', function() { self.placeTrade('sell'); });
             document.getElementById('chart-symbol').addEventListener('change', function() { self.loadChart(); });

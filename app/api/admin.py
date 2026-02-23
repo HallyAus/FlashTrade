@@ -67,3 +67,29 @@ async def toggle_auto_trade(req: AutoTradeRequest):
 async def get_auto_trade_status():
     """Get auto-trade status with regime info for all watched symbols."""
     return await _auto_trader.get_status()
+
+
+@router.post("/backfill", dependencies=[Depends(require_api_key)])
+async def trigger_backfill(period: str = "6mo"):
+    """Trigger historical data backfill for all markets.
+
+    Period: 1mo, 3mo, 6mo, 1y. Runs in-process (may take a few minutes).
+    """
+    from app.services.data.ingestion import backfill_all
+
+    valid_periods = {"1mo", "3mo", "6mo", "1y"}
+    if period not in valid_periods:
+        return {"status": "error", "message": f"Invalid period. Use one of: {valid_periods}"}
+
+    try:
+        results = await backfill_all(period)
+        total = sum(results.values())
+        return {
+            "status": "completed",
+            "period": period,
+            "total_rows": total,
+            "breakdown": results,
+        }
+    except Exception as e:
+        logger.error("Backfill failed: %s", e)
+        return {"status": "error", "message": str(e)}

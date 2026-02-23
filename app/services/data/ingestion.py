@@ -24,13 +24,17 @@ CRYPTO_SYMBOLS = {
     "BTC/AUD": "BTC",
     "ETH/AUD": "ETH",
     "SOL/AUD": "SOL",
+    "XRP/AUD": "XRP",
+    "DOGE/AUD": "DOGE",
 }
 CRYPTO_FALLBACK = {
     "BTC/USDT": "BTC",
     "ETH/USDT": "ETH",
     "SOL/USDT": "SOL",
+    "XRP/USDT": "XRP",
+    "DOGE/USDT": "DOGE",
 }
-ASX_SYMBOLS = ["BHP.AX", "CBA.AX", "CSL.AX"]
+ASX_SYMBOLS = ["BHP.AX", "CBA.AX", "CSL.AX", "WDS.AX", "FMG.AX"]
 US_SYMBOLS = ["SPY", "AAPL", "NVDA"]
 
 # CCXT timeframe mapping
