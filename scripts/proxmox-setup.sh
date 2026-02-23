@@ -120,7 +120,13 @@ echo \
 apt-get update
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+echo ">>> Removing AppArmor (incompatible with Docker-in-LXC)..."
+systemctl stop apparmor 2>/dev/null || true
+systemctl disable apparmor 2>/dev/null || true
+apt-get remove -y apparmor
+
 echo ">>> Verifying Docker..."
+systemctl restart docker
 docker --version
 docker compose version
 
@@ -139,7 +145,7 @@ DB_PASS=$(openssl rand -hex 16)
 sed -i "s/changeme_use_strong_password/$DB_PASS/g" .env
 
 echo ">>> Starting FlashTrade stack..."
-docker compose up -d --build
+DOCKER_BUILDKIT=0 docker compose up -d --build
 
 echo ">>> Waiting for services to come up..."
 sleep 15
