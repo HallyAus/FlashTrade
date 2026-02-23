@@ -22,18 +22,48 @@ _yfinance_feed = YFinanceFeed()
 
 @router.get("/portfolio")
 async def get_portfolio():
-    """Get portfolio overview with positions and P&L."""
+    """Get portfolio overview with positions, cash, and P&L.
+
+    Starting cash: $10,000 AUD (1,000,000 cents).
+    Cash decreases when buying, increases when selling.
+    Portfolio value = cash + value of open positions.
+    """
     from app.services.execution.paper_executor import PaperExecutor
     from app.api.admin import risk_manager
+
+    STARTING_CASH_CENTS = 1_000_000  # $10,000 AUD
 
     executor = PaperExecutor(risk_manager)
     positions = await executor.get_positions()
 
+    # Calculate realized P&L from all filled trades
+    async with async_session() as session:
+        from app.models.trade import Trade
+        result = await session.execute(
+            select(Trade).where(Trade.status == "filled")
+        )
+        trades = result.scalars().all()
+
+    # Cash = starting cash - money spent on buys + money received from sells
+    cash_cents = STARTING_CASH_CENTS
+    for t in trades:
+        if t.side == "buy":
+            cash_cents -= t.quantity_cents
+        elif t.side == "sell":
+            cash_cents += t.quantity_cents
+
+    # Value of open positions (quantity held at current price)
+    positions_value_cents = sum(p.get("quantity", 0) for p in positions)
     total_unrealized = sum(p.get("unrealized_pnl_cents", 0) for p in positions)
 
+    portfolio_value_cents = cash_cents + positions_value_cents
+
     return {
-        "portfolio_value_cents": 1_000_000 + total_unrealized,
+        "portfolio_value_cents": portfolio_value_cents,
+        "cash_cents": cash_cents,
+        "positions_value_cents": positions_value_cents,
         "daily_pnl_cents": total_unrealized,
+        "starting_cash_cents": STARTING_CASH_CENTS,
         "positions": positions,
         "status": "paper_trading",
     }
