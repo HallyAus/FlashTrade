@@ -287,9 +287,10 @@ class PaperExecutor:
                 filled_at=now,
             )
             session.add(trade)
+            await session.flush()
 
             journal = JournalEntry(
-                trade_id=None,
+                trade_id=trade.id,
                 symbol=symbol,
                 action="stop_loss_close",
                 strategy=pos.strategy,

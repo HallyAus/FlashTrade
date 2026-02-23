@@ -97,6 +97,9 @@ class RiskManager:
     def evaluate(self, order: Order) -> RiskVerdict:
         """Evaluate an order against all risk rules. Returns approval or rejection."""
 
+        # Re-read state from Redis so kill switch from another process is seen
+        self._load_state()
+
         # Check halt state
         if self._halted:
             return RiskVerdict(

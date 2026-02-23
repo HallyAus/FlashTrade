@@ -124,7 +124,7 @@ class AutoTrader:
 
     def _strategy_for_regime(self, regime: str | None) -> MomentumStrategy | MeanReversionStrategy:
         """Pick strategy based on regime. Defaults to mean reversion for safety."""
-        if regime == RegimeType.TRENDING:
+        if regime == RegimeType.TRENDING.value:
             return self._momentum
         return self._meanrev
 

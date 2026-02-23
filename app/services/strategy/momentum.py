@@ -42,7 +42,7 @@ class MomentumStrategy(BaseStrategy):
         current_atr = atr_values.iloc[-1]
         current_price = int(close.iloc[-1])
 
-        if pd.isna(current_rsi) or pd.isna(current_hist) or pd.isna(current_atr):
+        if any(pd.isna(v) for v in [current_rsi, prev_rsi, current_hist, prev_hist, current_atr]):
             return []
 
         signals = []
@@ -56,7 +56,7 @@ class MomentumStrategy(BaseStrategy):
                     symbol=symbol,
                     market=market,
                     action="buy",
-                    strength=abs(strength),
+                    strength=strength,
                     stop_loss_cents=max(1, stop_loss),
                     price_cents=current_price,
                     reason=f"RSI crossed above 30 ({current_rsi:.1f}), MACD histogram turned positive ({current_hist:.0f})",
@@ -70,13 +70,14 @@ class MomentumStrategy(BaseStrategy):
             )
 
         # SELL signal: RSI > 70 or MACD histogram turns negative
+        # Stop-loss = current price (closing a long, not opening a short)
         if current_rsi > 70 or (current_hist < 0 and prev_hist >= 0):
             reason_parts = []
             if current_rsi > 70:
                 reason_parts.append(f"RSI overbought ({current_rsi:.1f})")
             if current_hist < 0 and prev_hist >= 0:
                 reason_parts.append(f"MACD histogram turned negative ({current_hist:.0f})")
-            stop_loss = int(current_price + 2 * current_atr)
+            stop_loss = current_price
             signals.append(
                 Signal(
                     symbol=symbol,

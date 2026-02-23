@@ -1,6 +1,7 @@
 """Dashboard API routes — portfolio overview, live prices, health, data quality, charts."""
 
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Query
@@ -8,16 +9,18 @@ from sqlalchemy import select
 
 from app.database import async_session
 from app.models.ohlcv import OHLCV
-from app.services.data.ccxt_feed import CCXTFeed
+from app.services.data.feeds import ccxt_feed as _ccxt_feed
+from app.services.data.feeds import get_live_prices as _fetch_live_prices
+from app.services.data.feeds import yfinance_feed as _yfinance_feed
 from app.services.data.market_calendar import market_status_summary
-from app.services.data.yfinance_feed import YFinanceFeed
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
-# Module-level singletons so the in-memory cache persists across requests
-_ccxt_feed = CCXTFeed()
-_yfinance_feed = YFinanceFeed()
+# Portfolio cache — avoids hitting DB + 2 external APIs every 15s poll
+_portfolio_cache: dict | None = None
+_portfolio_cache_time: float = 0.0
+_PORTFOLIO_CACHE_TTL = 15  # seconds
 
 
 @router.get("/portfolio")
@@ -27,7 +30,14 @@ async def get_portfolio():
     Starting cash: $10,000 AUD (1,000,000 cents).
     Cash decreases when buying, increases when selling.
     Unrealized P&L calculated from live prices, not stale DB values.
+    Cached for 15 seconds to avoid hammering external APIs on every poll.
     """
+    global _portfolio_cache, _portfolio_cache_time
+
+    now = time.monotonic()
+    if _portfolio_cache is not None and (now - _portfolio_cache_time) < _PORTFOLIO_CACHE_TTL:
+        return _portfolio_cache
+
     from app.services.execution.paper_executor import PaperExecutor
     from app.api.admin import risk_manager
 
@@ -36,20 +46,8 @@ async def get_portfolio():
     executor = PaperExecutor(risk_manager)
     positions = await executor.get_positions()
 
-    # Fetch live prices to calculate real unrealized P&L
-    live_prices = {}
-    try:
-        crypto_raw = await _ccxt_feed.get_prices()
-        for p in crypto_raw:
-            live_prices[p.symbol] = p.price_cents
-    except Exception as e:
-        logger.warning("Failed to fetch crypto prices for portfolio: %s", e)
-    try:
-        stock_raw = await _yfinance_feed.get_prices()
-        for p in stock_raw:
-            live_prices[p.symbol] = p.price_cents
-    except Exception as e:
-        logger.warning("Failed to fetch stock prices for portfolio: %s", e)
+    # Fetch live prices to calculate real unrealized P&L (uses shared cached singletons)
+    live_prices = await _fetch_live_prices()
 
     # Update positions with live prices and calculate unrealized P&L
     for pos in positions:
@@ -103,7 +101,7 @@ async def get_portfolio():
     cost_basis_open = sum(p.get("quantity", 0) for p in positions)
     realized_pnl_cents = cash_cents + cost_basis_open - STARTING_CASH_CENTS
 
-    return {
+    result = {
         "cash_cents": cash_cents,
         "positions_value_cents": positions_value_cents,
         "unrealized_pnl_cents": unrealized_pnl_cents,
@@ -114,6 +112,9 @@ async def get_portfolio():
         "total_trades": len(trades),
         "status": "paper_trading",
     }
+    _portfolio_cache = result
+    _portfolio_cache_time = now
+    return result
 
 
 @router.get("/health")

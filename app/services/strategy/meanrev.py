@@ -43,7 +43,7 @@ class MeanReversionStrategy(BaseStrategy):
         prev_close = close.iloc[-2]
         current_atr = atr_values.iloc[-1]
 
-        if pd.isna(current_rsi) or pd.isna(current_lower) or pd.isna(current_atr):
+        if any(pd.isna(v) for v in [current_rsi, current_lower, current_atr, prev_close]):
             return []
 
         signals = []
@@ -78,8 +78,9 @@ class MeanReversionStrategy(BaseStrategy):
             )
 
         # SELL signal: price crosses above middle band (take profit)
+        # Stop-loss = current price (closing a long, not opening a short)
         if prev_close < current_middle and current_close >= current_middle:
-            stop_loss = int(current_close + 1.5 * current_atr)
+            stop_loss = current_close
             signals.append(
                 Signal(
                     symbol=symbol,
@@ -99,8 +100,9 @@ class MeanReversionStrategy(BaseStrategy):
             )
 
         # SELL signal: price above upper band (overextended)
+        # Stop-loss = current price (closing a long, not opening a short)
         if current_close > current_upper and current_rsi > 65:
-            stop_loss = int(current_close + 1.5 * current_atr)
+            stop_loss = current_close
             signals.append(
                 Signal(
                     symbol=symbol,

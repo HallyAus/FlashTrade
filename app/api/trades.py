@@ -1,6 +1,7 @@
 """Trade API routes — place trades, view history, manage positions."""
 
 import logging
+import time
 from typing import Literal
 
 from fastapi import APIRouter, Depends
@@ -8,7 +9,6 @@ from pydantic import BaseModel, Field
 
 from app.api.admin import risk_manager
 from app.api.auth import require_api_key
-from app.config import settings
 from app.services.execution.paper_executor import PaperExecutor
 from app.services.risk_manager import Order
 
@@ -17,6 +17,11 @@ router = APIRouter(prefix="/api/trades", tags=["trades"])
 
 # Module-level executor singleton
 _paper_executor = PaperExecutor(risk_manager)
+
+# Positions cache (enriched with live prices) — avoids hitting DB + external APIs every poll
+_positions_cache: dict | None = None
+_positions_cache_time: float = 0.0
+_POSITIONS_CACHE_TTL = 10  # seconds
 
 
 class TradeRequest(BaseModel):
@@ -36,6 +41,8 @@ class TradeRequest(BaseModel):
 @router.post("/", dependencies=[Depends(require_api_key)])
 async def place_trade(req: TradeRequest):
     """Place a new trade through risk manager and paper executor."""
+    global _positions_cache, _positions_cache_time
+
     order = Order(
         symbol=req.symbol,
         market=req.market,
@@ -49,6 +56,11 @@ async def place_trade(req: TradeRequest):
     )
 
     result = await _paper_executor.submit_order(order)
+
+    # Invalidate positions cache after a trade
+    _positions_cache = None
+    _positions_cache_time = 0.0
+
     return result
 
 
@@ -61,26 +73,23 @@ async def list_trades():
 
 @router.get("/positions")
 async def list_positions():
-    """List open positions with live prices and unrealized P&L."""
-    from app.services.data.ccxt_feed import CCXTFeed
-    from app.services.data.yfinance_feed import YFinanceFeed
+    """List open positions with live prices and unrealized P&L.
+
+    Cached for 10 seconds to avoid hammering DB + external price APIs on every poll.
+    Cache is invalidated when a trade is placed.
+    """
+    global _positions_cache, _positions_cache_time
+
+    now = time.monotonic()
+    if _positions_cache is not None and (now - _positions_cache_time) < _POSITIONS_CACHE_TTL:
+        return _positions_cache
+
+    from app.services.data.feeds import get_live_prices
 
     positions = await _paper_executor.get_positions()
 
-    # Enrich with live prices
-    live_prices = {}
-    try:
-        ccxt_feed = CCXTFeed()
-        for p in await ccxt_feed.get_prices():
-            live_prices[p.symbol] = p.price_cents
-    except Exception as e:
-        logger.warning("Failed to fetch crypto prices for positions: %s", e)
-    try:
-        yf_feed = YFinanceFeed()
-        for p in await yf_feed.get_prices():
-            live_prices[p.symbol] = p.price_cents
-    except Exception as e:
-        logger.warning("Failed to fetch stock prices for positions: %s", e)
+    # Enrich with live prices (uses shared cached singletons)
+    live_prices = await get_live_prices()
 
     for pos in positions:
         live_price = live_prices.get(pos["symbol"])
@@ -92,4 +101,7 @@ async def list_positions():
                     pos["quantity"] * (live_price - entry) / entry
                 )
 
-    return {"positions": positions}
+    result = {"positions": positions}
+    _positions_cache = result
+    _positions_cache_time = now
+    return result
