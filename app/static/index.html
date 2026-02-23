@@ -642,27 +642,27 @@
 
         <div class="grid">
             <div class="card">
-                <div class="card-header">Portfolio Value</div>
-                <div class="card-value green" id="portfolio-value">--</div>
-                <div class="card-sub" id="portfolio-sub">Paper trading account</div>
-            </div>
-
-            <div class="card">
                 <div class="card-header">Cash Available</div>
                 <div class="card-value blue" id="cash-available">--</div>
                 <div class="card-sub" id="cash-sub">of A$10,000.00 initial</div>
             </div>
 
             <div class="card">
-                <div class="card-header">Today's P&L</div>
-                <div class="card-value" id="daily-pnl">$0.00</div>
-                <div class="card-sub" id="pnl-sub">No trades yet</div>
+                <div class="card-header">Portfolio Value</div>
+                <div class="card-value" id="portfolio-value">A$0.00</div>
+                <div class="card-sub" id="portfolio-sub">Open positions value</div>
             </div>
 
             <div class="card">
-                <div class="card-header">Open Positions</div>
-                <div class="card-value orange" id="positions-count">0</div>
-                <div class="card-sub" id="positions-value-sub">A$0.00 invested</div>
+                <div class="card-header">Unrealized P&L</div>
+                <div class="card-value" id="unrealized-pnl">A$0.00</div>
+                <div class="card-sub" id="unrealized-sub">No open positions</div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Realized P&L</div>
+                <div class="card-value" id="realized-pnl">A$0.00</div>
+                <div class="card-sub" id="realized-sub">No closed trades</div>
             </div>
 
             <div class="card trade-card">
@@ -869,39 +869,45 @@
                     badge.querySelector('.pulse').style.background = '#3fb950';
                 }
 
-                // Update cards
-                const value = portfolio.portfolio_value_cents / 100;
-                document.getElementById('portfolio-value').textContent =
-                    'A$' + value.toLocaleString('en-AU', { minimumFractionDigits: 2 });
-
-                const starting = (portfolio.starting_cash_cents || 1000000) / 100;
-                const totalReturn = value - starting;
-                const returnPct = (totalReturn / starting * 100).toFixed(2);
-                const returnSign = totalReturn >= 0 ? '+' : '';
-                document.getElementById('portfolio-sub').textContent =
-                    `${returnSign}A$${totalReturn.toFixed(2)} (${returnSign}${returnPct}%)`;
-
+                // Card 1: Cash Available
                 const cash = (portfolio.cash_cents || 0) / 100;
+                const starting = (portfolio.starting_cash_cents || 1000000) / 100;
                 document.getElementById('cash-available').textContent =
                     'A$' + cash.toLocaleString('en-AU', { minimumFractionDigits: 2 });
-                const cashPct = (cash / starting * 100).toFixed(0);
                 document.getElementById('cash-sub').textContent =
-                    `${cashPct}% of A$${starting.toLocaleString('en-AU', { minimumFractionDigits: 2 })} initial`;
+                    `of A$${starting.toLocaleString('en-AU', { minimumFractionDigits: 2 })} initial`;
 
-                const pnl = portfolio.daily_pnl_cents / 100;
-                const pnlEl = document.getElementById('daily-pnl');
-                pnlEl.textContent = (pnl >= 0 ? '+' : '') + 'A$' + Math.abs(pnl).toFixed(2);
-                pnlEl.className = 'card-value ' + (pnl >= 0 ? 'green' : 'red');
-                document.getElementById('pnl-sub').textContent =
-                    portfolio.positions.length > 0 ? 'Unrealized P&L' : 'No open positions';
-
-                document.getElementById('positions-count').textContent =
-                    portfolio.positions.length;
+                // Card 2: Portfolio Value (open positions only)
                 const posValue = (portfolio.positions_value_cents || 0) / 100;
-                document.getElementById('positions-value-sub').textContent =
-                    `A$${posValue.toFixed(2)} invested`;
+                const posEl = document.getElementById('portfolio-value');
+                posEl.textContent = 'A$' + posValue.toLocaleString('en-AU', { minimumFractionDigits: 2 });
+                posEl.className = 'card-value ' + (posValue > 0 ? 'green' : '');
+                const posCount = portfolio.open_positions_count || 0;
+                document.getElementById('portfolio-sub').textContent =
+                    posCount > 0 ? `${posCount} open position${posCount > 1 ? 's' : ''}` : 'No open positions';
 
-                addLog('ok', `System healthy | Cash: A$${cash.toFixed(2)} | Portfolio: A$${value.toFixed(2)}`);
+                // Card 3: Unrealized P&L
+                const unrealized = (portfolio.unrealized_pnl_cents || 0) / 100;
+                const unrealizedEl = document.getElementById('unrealized-pnl');
+                const uSign = unrealized >= 0 ? '+' : '';
+                unrealizedEl.textContent = `${uSign}A$${Math.abs(unrealized).toFixed(2)}`;
+                unrealizedEl.className = 'card-value ' + (unrealized > 0 ? 'green' : unrealized < 0 ? 'red' : '');
+                document.getElementById('unrealized-sub').textContent =
+                    posCount > 0 ? `Across ${posCount} position${posCount > 1 ? 's' : ''}` : 'No open positions';
+
+                // Card 4: Realized P&L
+                const realized = (portfolio.realized_pnl_cents || 0) / 100;
+                const realizedEl = document.getElementById('realized-pnl');
+                const rSign = realized >= 0 ? '+' : '';
+                realizedEl.textContent = `${rSign}A$${Math.abs(realized).toFixed(2)}`;
+                realizedEl.className = 'card-value ' + (realized > 0 ? 'green' : realized < 0 ? 'red' : '');
+                const totalTrades = portfolio.total_trades || 0;
+                document.getElementById('realized-sub').textContent =
+                    totalTrades > 0 ? `From ${totalTrades} trade${totalTrades > 1 ? 's' : ''}` : 'No closed trades';
+
+                document.getElementById('positions-count').textContent = posCount;
+
+                addLog('ok', `System healthy | Cash: A$${cash.toFixed(2)} | Positions: A$${posValue.toFixed(2)}`);
             } catch (err) {
                 document.getElementById('status-text').textContent = 'OFFLINE';
                 document.getElementById('status-badge').className = 'status-badge offline';
