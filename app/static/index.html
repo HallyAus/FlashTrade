@@ -1097,13 +1097,15 @@
         // Status & Portfolio
         // ============================================================
         async fetchStatus() {
-            try {
-                const [root, portfolio, admin] = await Promise.all([
-                    this.api(`${this.CONFIG.API_BASE}/api`),
-                    this.api(`${this.CONFIG.API_BASE}/api/dashboard/portfolio`),
-                    this.api(`${this.CONFIG.API_BASE}/api/admin/status`),
-                ]);
+            // Fetch system status and portfolio independently so one slow
+            // endpoint doesn't block the other from rendering.
+            this._fetchSystemStatus();
+            this._fetchPortfolio();
+        },
 
+        async _fetchSystemStatus() {
+            try {
+                const admin = await this.api(`${this.CONFIG.API_BASE}/api/admin/status`);
                 const badge = document.getElementById('status-badge');
                 const statusText = document.getElementById('status-text');
                 if (admin.halted) {
@@ -1115,6 +1117,16 @@
                     statusText.textContent = 'ONLINE';
                     badge.querySelector('.pulse').style.background = '#3fb950';
                 }
+            } catch (err) {
+                document.getElementById('status-text').textContent = 'OFFLINE';
+                document.getElementById('status-badge').className = 'status-badge offline';
+                this.addLog('warn', 'Status check failed: ' + err.message);
+            }
+        },
+
+        async _fetchPortfolio() {
+            try {
+                const portfolio = await this.api(`${this.CONFIG.API_BASE}/api/dashboard/portfolio`);
 
                 // Card 1: Cash Available
                 const cash = (portfolio.cash_cents || 0) / 100;
@@ -1152,11 +1164,9 @@
                 document.getElementById('realized-sub').textContent =
                     totalTrades > 0 ? 'From ' + totalTrades + ' trade' + (totalTrades > 1 ? 's' : '') : 'No closed trades';
 
-                this.addLog('ok', 'System healthy | Cash: A$' + cash.toFixed(2) + ' | Positions: A$' + posValue.toFixed(2));
+                this.addLog('ok', 'Cash: A$' + cash.toFixed(2) + ' | Positions: A$' + posValue.toFixed(2));
             } catch (err) {
-                document.getElementById('status-text').textContent = 'OFFLINE';
-                document.getElementById('status-badge').className = 'status-badge offline';
-                this.addLog('warn', 'API unreachable: ' + err.message);
+                this.addLog('warn', 'Portfolio fetch failed: ' + err.message);
             }
         },
 
@@ -1187,10 +1197,26 @@
                 const data = await this.api(`${this.CONFIG.API_BASE}/api/admin/backfill?period=6mo`, {
                     method: 'POST',
                 });
-                if (data.status === 'completed') {
-                    this.addLog('info', 'Backfill complete: ' + data.total_rows + ' rows ingested');
-                    btn.textContent = 'Done!';
-                    btn.style.color = '#3fb950';
+                if (data.status === 'completed' || data.status === 'partial') {
+                    this.addLog('info', 'Backfill ' + data.status + ': ' + data.total_rows + ' rows ingested');
+
+                    // Log per-symbol results so user can see what worked
+                    var breakdown = data.breakdown || {};
+                    var categories = ['crypto_1h', 'crypto_1d', 'asx_1d', 'asx_1h', 'us_1d', 'us_1h'];
+                    var summary = categories
+                        .filter(function(k) { return breakdown[k] !== undefined; })
+                        .map(function(k) { return k + ': ' + breakdown[k]; })
+                        .join(' | ');
+                    if (summary) this.addLog('info', 'Breakdown: ' + summary);
+
+                    // Log errors if any
+                    var errors = data.errors || [];
+                    for (var i = 0; i < errors.length; i++) {
+                        this.addLog('warn', 'Backfill error: ' + errors[i]);
+                    }
+
+                    btn.textContent = data.status === 'completed' ? 'Done!' : 'Partial';
+                    btn.style.color = data.status === 'completed' ? '#3fb950' : '#d29922';
                     // Refresh auto-trade status to update proximity indicators
                     this.fetchAutoTradeStatus();
                 } else {
@@ -1203,10 +1229,11 @@
             } finally {
                 btn.disabled = false;
                 btn.style.opacity = '1';
+                var self = this;
                 setTimeout(function() {
                     btn.textContent = 'Backfill Data';
                     btn.style.color = '#58a6ff';
-                }, 5000);
+                }, 8000);
             }
         },
 

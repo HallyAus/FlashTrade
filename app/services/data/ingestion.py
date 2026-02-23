@@ -190,54 +190,80 @@ async def ingest_stock_ohlcv(
     return total
 
 
-async def backfill_all(period: str = "6mo") -> dict[str, int]:
+async def backfill_all(period: str = "6mo") -> dict:
     """Backfill all markets with historical data.
 
     Args:
         period: How far back to go (e.g., "6mo", "1y").
 
-    Returns dict of market -> rows ingested.
+    Returns dict with per-symbol and per-category row counts, plus errors list.
     """
     results: dict[str, int] = {}
+    errors: list[str] = []
 
     # Crypto: CCXT supports fetching large batches via since parameter
-    # For backfill, fetch 1h candles (max ~500 per request for most exchanges)
     logger.info("Backfilling crypto (1h candles, ~%s)...", period)
-    results["crypto_1h"] = await _backfill_crypto("1h", period)
+    crypto_1h, crypto_1h_errors = await _backfill_crypto("1h", period)
+    results["crypto_1h"] = sum(crypto_1h.values())
+    results.update({f"{sym}_1h": count for sym, count in crypto_1h.items()})
+    errors.extend(crypto_1h_errors)
 
     logger.info("Backfilling crypto (1d candles, ~%s)...", period)
-    results["crypto_1d"] = await _backfill_crypto("1d", period)
+    crypto_1d, crypto_1d_errors = await _backfill_crypto("1d", period)
+    results["crypto_1d"] = sum(crypto_1d.values())
+    results.update({f"{sym}_1d": count for sym, count in crypto_1d.items()})
+    errors.extend(crypto_1d_errors)
 
     # ASX stocks: daily candles
     logger.info("Backfilling ASX stocks (1d, %s)...", period)
-    results["asx_1d"] = await ingest_stock_ohlcv("asx", "1d", period)
+    asx_1d, asx_1d_errors = await _backfill_stocks("asx", "1d", period)
+    results["asx_1d"] = sum(asx_1d.values())
+    results.update({f"{sym}_1d": count for sym, count in asx_1d.items()})
+    errors.extend(asx_1d_errors)
 
     # ASX stocks: hourly candles (yfinance limits to ~730 days for 1h)
     logger.info("Backfilling ASX stocks (1h, %s)...", period)
-    results["asx_1h"] = await ingest_stock_ohlcv("asx", "1h", period)
+    asx_1h, asx_1h_errors = await _backfill_stocks("asx", "1h", period)
+    results["asx_1h"] = sum(asx_1h.values())
+    results.update({f"{sym}_1h": count for sym, count in asx_1h.items()})
+    errors.extend(asx_1h_errors)
 
     # US stocks: daily candles
     logger.info("Backfilling US stocks (1d, %s)...", period)
-    results["us_1d"] = await ingest_stock_ohlcv("us", "1d", period)
+    us_1d, us_1d_errors = await _backfill_stocks("us", "1d", period)
+    results["us_1d"] = sum(us_1d.values())
+    results.update({f"{sym}_1d": count for sym, count in us_1d.items()})
+    errors.extend(us_1d_errors)
 
     # US stocks: hourly candles
     logger.info("Backfilling US stocks (1h, %s)...", period)
-    results["us_1h"] = await ingest_stock_ohlcv("us", "1h", period)
+    us_1h, us_1h_errors = await _backfill_stocks("us", "1h", period)
+    results["us_1h"] = sum(us_1h.values())
+    results.update({f"{sym}_1h": count for sym, count in us_1h.items()})
+    errors.extend(us_1h_errors)
 
-    total = sum(results.values())
-    logger.info("Backfill complete. Total rows: %d | Breakdown: %s", total, results)
+    category_total = (results.get("crypto_1h", 0) + results.get("crypto_1d", 0)
+                      + results.get("asx_1d", 0) + results.get("asx_1h", 0)
+                      + results.get("us_1d", 0) + results.get("us_1h", 0))
+    results["_errors"] = errors  # type: ignore[assignment]
+    logger.info("Backfill complete. Total rows: %d | Errors: %d | Breakdown: %s",
+                category_total, len(errors), {k: v for k, v in results.items() if k != "_errors"})
     return results
 
 
-async def _backfill_crypto(timeframe: str, period: str) -> int:
-    """Backfill crypto OHLCV by paginating through historical data."""
-    # Map period string to milliseconds
+async def _backfill_crypto(timeframe: str, period: str) -> tuple[dict[str, int], list[str]]:
+    """Backfill crypto OHLCV by paginating through historical data.
+
+    Returns (per_symbol_counts, errors).
+    """
     period_ms = _period_to_ms(period)
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
     since_ms = now_ms - period_ms
 
     exchange = None
     symbols = CRYPTO_SYMBOLS
+    per_symbol: dict[str, int] = {}
+    errors: list[str] = []
 
     try:
         exchange = ccxt.swyftx({"enableRateLimit": True, "timeout": 15000})
@@ -248,10 +274,10 @@ async def _backfill_crypto(timeframe: str, period: str) -> int:
             exchange.load_markets()
             symbols = CRYPTO_FALLBACK
         except Exception as e:
-            logger.error("No exchange available for crypto backfill: %s", e)
-            return 0
+            msg = f"No exchange available for crypto backfill: {e}"
+            logger.error(msg)
+            return per_symbol, [msg]
 
-    total = 0
     async with async_session() as session:
         for pair, short_name in symbols.items():
             cursor = since_ms
@@ -288,12 +314,75 @@ async def _backfill_crypto(timeframe: str, period: str) -> int:
                         break
                     cursor = last_ts + 1
 
+                per_symbol[short_name] = pair_total
                 logger.info("Backfilled %d candles for %s (%s)", pair_total, short_name, timeframe)
-                total += pair_total
             except Exception as e:
-                logger.error("Backfill failed for %s: %s", pair, e)
+                msg = f"Backfill failed for {pair} ({timeframe}): {e}"
+                logger.error(msg)
+                errors.append(msg)
+                per_symbol[short_name] = pair_total  # Record partial progress
 
-    return total
+    return per_symbol, errors
+
+
+async def _backfill_stocks(
+    market: Literal["asx", "us"],
+    timeframe: str,
+    period: str,
+) -> tuple[dict[str, int], list[str]]:
+    """Backfill stock OHLCV with per-symbol tracking.
+
+    Returns (per_symbol_counts, errors).
+    """
+    symbols = ASX_SYMBOLS if market == "asx" else US_SYMBOLS
+    per_symbol: dict[str, int] = {}
+    errors: list[str] = []
+
+    async with async_session() as session:
+        for sym in symbols:
+            try:
+                ticker = yf.Ticker(sym)
+                df = ticker.history(period=period, interval=timeframe)
+
+                if df.empty:
+                    msg = f"No data returned for {sym} ({timeframe}/{period})"
+                    logger.warning(msg)
+                    errors.append(msg)
+                    per_symbol[sym] = 0
+                    continue
+
+                rows = []
+                for ts, row in df.iterrows():
+                    if hasattr(ts, "to_pydatetime"):
+                        ts_dt = ts.to_pydatetime()
+                    else:
+                        ts_dt = ts
+
+                    if ts_dt.tzinfo is None:
+                        ts_dt = ts_dt.replace(tzinfo=timezone.utc)
+
+                    rows.append({
+                        "symbol": sym,
+                        "market": market,
+                        "timeframe": timeframe,
+                        "timestamp": ts_dt,
+                        "open": int(round(row["Open"] * 100)),
+                        "high": int(round(row["High"] * 100)),
+                        "low": int(round(row["Low"] * 100)),
+                        "close": int(round(row["Close"] * 100)),
+                        "volume": int(row.get("Volume", 0)),
+                    })
+
+                count = await upsert_ohlcv_batch(session, rows)
+                per_symbol[sym] = count
+                logger.info("Backfilled %d candles for %s (%s/%s)", count, sym, timeframe, period)
+            except Exception as e:
+                msg = f"Backfill failed for {sym} ({timeframe}/{period}): {e}"
+                logger.error(msg)
+                errors.append(msg)
+                per_symbol[sym] = 0
+
+    return per_symbol, errors
 
 
 def _period_to_ms(period: str) -> int:

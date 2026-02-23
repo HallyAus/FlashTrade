@@ -83,12 +83,16 @@ async def trigger_backfill(period: str = "6mo"):
 
     try:
         results = await backfill_all(period)
-        total = sum(results.values())
+        errors = results.pop("_errors", [])
+        total = (results.get("crypto_1h", 0) + results.get("crypto_1d", 0)
+                 + results.get("asx_1d", 0) + results.get("asx_1h", 0)
+                 + results.get("us_1d", 0) + results.get("us_1h", 0))
         return {
-            "status": "completed",
+            "status": "completed" if not errors else "partial",
             "period": period,
             "total_rows": total,
             "breakdown": results,
+            "errors": errors,
         }
     except Exception as e:
         logger.error("Backfill failed: %s", e)
