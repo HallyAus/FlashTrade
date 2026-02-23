@@ -26,7 +26,7 @@ async def get_portfolio():
 
     Starting cash: $10,000 AUD (1,000,000 cents).
     Cash decreases when buying, increases when selling.
-    Portfolio value = cash + value of open positions.
+    Unrealized P&L calculated from live prices, not stale DB values.
     """
     from app.services.execution.paper_executor import PaperExecutor
     from app.api.admin import risk_manager
@@ -35,6 +35,35 @@ async def get_portfolio():
 
     executor = PaperExecutor(risk_manager)
     positions = await executor.get_positions()
+
+    # Fetch live prices to calculate real unrealized P&L
+    live_prices = {}
+    try:
+        crypto_raw = await _ccxt_feed.get_prices()
+        for p in crypto_raw:
+            live_prices[p.symbol] = p.price_cents
+    except Exception as e:
+        logger.warning("Failed to fetch crypto prices for portfolio: %s", e)
+    try:
+        stock_raw = await _yfinance_feed.get_prices()
+        for p in stock_raw:
+            live_prices[p.symbol] = p.price_cents
+    except Exception as e:
+        logger.warning("Failed to fetch stock prices for portfolio: %s", e)
+
+    # Update positions with live prices and calculate unrealized P&L
+    for pos in positions:
+        symbol = pos["symbol"]
+        live_price = live_prices.get(symbol)
+        if live_price:
+            pos["current_price_cents"] = live_price
+            # P&L = (current - entry) * quantity / entry
+            # quantity is in cents (dollar amount invested), so P&L = quantity * (current - entry) / entry
+            entry = pos["entry_price_cents"]
+            if entry > 0:
+                pos["unrealized_pnl_cents"] = int(
+                    pos["quantity"] * (live_price - entry) / entry
+                )
 
     # Get all filled trades
     async with async_session() as session:
@@ -52,15 +81,27 @@ async def get_portfolio():
         elif t.side == "sell":
             cash_cents += t.quantity_cents
 
-    # Portfolio value = total value of open positions (what they're worth now)
-    positions_value_cents = sum(p.get("quantity", 0) for p in positions)
+    # Portfolio value = current market value of open positions
+    positions_value_cents = 0
+    for pos in positions:
+        entry = pos["entry_price_cents"]
+        current = pos["current_price_cents"]
+        qty = pos["quantity"]
+        # Value = quantity * (current / entry) — position worth at current price
+        if entry > 0:
+            positions_value_cents += int(qty * current / entry)
+        else:
+            positions_value_cents += qty
 
-    # Unrealized P&L = current value - cost basis of open positions
+    # Unrealized P&L = sum of all position P&Ls (already calculated above from live prices)
     unrealized_pnl_cents = sum(p.get("unrealized_pnl_cents", 0) for p in positions)
 
-    # Realized P&L = cash change from closed trades (sells - cost of sold positions)
-    # This is: current cash - (starting cash - money still in positions)
-    realized_pnl_cents = cash_cents - (STARTING_CASH_CENTS - positions_value_cents)
+    # Realized P&L = sum of profit/loss from closed (sell) trades
+    # For each sell trade, the P&L is embedded in the reason field by the executor.
+    # More accurately: cash_now + cost_of_open_positions - starting_cash
+    # This equals the net gain/loss from all fully closed positions.
+    cost_basis_open = sum(p.get("quantity", 0) for p in positions)
+    realized_pnl_cents = cash_cents + cost_basis_open - STARTING_CASH_CENTS
 
     return {
         "cash_cents": cash_cents,
