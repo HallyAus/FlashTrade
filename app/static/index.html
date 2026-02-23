@@ -194,6 +194,143 @@
         .log-level.warn { color: #d29922; }
         .log-msg { color: #8b949e; }
 
+        /* Auto-trade toggle */
+        .auto-trade-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #21262d;
+            border-radius: 12px;
+            transition: background 0.2s;
+            border: 1px solid #30363d;
+        }
+
+        .toggle-switch.active {
+            background: rgba(46, 160, 67, 0.3);
+            border-color: #3fb950;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #8b949e;
+            top: 2px;
+            left: 2px;
+            transition: all 0.2s;
+        }
+
+        .toggle-switch.active::after {
+            left: 22px;
+            background: #3fb950;
+        }
+
+        .auto-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .auto-label.on { color: #3fb950; }
+        .auto-label.off { color: #8b949e; }
+
+        /* Recommended symbols */
+        .symbols-card { grid-column: 1 / -1; }
+
+        .symbol-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .symbol-item {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 6px;
+            padding: 14px;
+        }
+
+        .symbol-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .symbol-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #e1e4e8;
+        }
+
+        .regime-tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .regime-tag.trending { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
+        .regime-tag.ranging { background: rgba(136, 87, 229, 0.15); color: #a371f7; }
+        .regime-tag.volatile { background: rgba(187, 128, 9, 0.15); color: #d29922; }
+        .regime-tag.unknown { background: rgba(139, 148, 158, 0.15); color: #8b949e; }
+
+        .symbol-strategy {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 4px;
+        }
+
+        .symbol-signal {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .symbol-signal.buy { color: #3fb950; }
+        .symbol-signal.sell { color: #f85149; }
+        .symbol-signal.hold { color: #8b949e; }
+
+        /* Signal log */
+        .signal-log {
+            margin-top: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .signal-entry {
+            display: flex;
+            gap: 10px;
+            padding: 6px 0;
+            border-bottom: 1px solid #161b22;
+            font-size: 12px;
+            align-items: center;
+        }
+
+        .signal-time { color: #484f58; min-width: 70px; }
+        .signal-action {
+            min-width: 40px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .signal-action.buy { color: #3fb950; }
+        .signal-action.sell { color: #f85149; }
+        .signal-action.hold { color: #8b949e; }
+        .signal-sym { color: #e1e4e8; min-width: 60px; font-weight: 600; }
+        .signal-reason { color: #8b949e; flex: 1; }
+
         /* Footer */
         .footer {
             margin-top: 40px;
@@ -491,6 +628,10 @@
         <div class="header">
             <div class="logo">Flash<span>Trade</span></div>
             <div style="display: flex; gap: 12px; align-items: center;">
+                <div class="auto-trade-toggle" onclick="toggleAutoTrade()" title="Toggle auto-trading">
+                    <div class="toggle-switch" id="auto-toggle"></div>
+                    <span class="auto-label off" id="auto-label">AUTO</span>
+                </div>
                 <button class="kill-btn" onclick="killSwitch()">KILL SWITCH</button>
                 <div class="status-badge online" id="status-badge">
                     <div class="pulse"></div>
@@ -579,6 +720,27 @@
                 </table>
             </div>
 
+            <div class="card symbols-card">
+                <div class="card-header">
+                    Recommended Symbols
+                    <span id="symbols-status" style="font-size:11px; color:#484f58; text-transform:none; letter-spacing:0;"> -- auto-trade off</span>
+                </div>
+                <div class="symbol-grid" id="symbol-grid">
+                    <div class="symbol-item">
+                        <div class="symbol-header">
+                            <span class="symbol-name">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-header" style="margin-top:16px;">Signal Log</div>
+                <div class="signal-log" id="signal-log">
+                    <div class="signal-entry">
+                        <span class="signal-time">--</span>
+                        <span class="signal-reason">Waiting for auto-trade to be enabled...</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="card prices-card">
                 <div class="card-header">
                     Live Prices
@@ -651,7 +813,7 @@
         </div>
 
         <div class="footer">
-            <span>FlashTrade v0.5.0 &mdash; Day 5 of 30</span>
+            <span>FlashTrade v0.6.0 &mdash; Day 5 Auto-Trading</span>
             <span>
                 <a href="https://github.com/HallyAus/FlashTrade" target="_blank">GitHub</a>
                 &nbsp;&middot;&nbsp;
@@ -1097,6 +1259,119 @@
             }
         }
 
+        // ---- Auto-Trade ----
+        let autoTradeEnabled = false;
+
+        async function toggleAutoTrade() {
+            const newState = !autoTradeEnabled;
+            const action = newState ? 'ENABLE' : 'DISABLE';
+            if (!confirm(`${action} auto-trading?\n\nThis will ${newState ? 'start' : 'stop'} automated signal evaluation and order placement for 5 recommended symbols.`)) return;
+
+            try {
+                const resp = await fetch(`${API_BASE}/api/admin/auto-trade`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: newState }),
+                });
+                const data = await resp.json();
+                autoTradeEnabled = data.enabled;
+                updateAutoTradeUI();
+                addLog(newState ? 'ok' : 'info', `Auto-trade ${newState ? 'enabled' : 'disabled'}`);
+            } catch (err) {
+                addLog('warn', `Failed to toggle auto-trade: ${err.message}`);
+            }
+        }
+
+        function updateAutoTradeUI() {
+            const toggle = document.getElementById('auto-toggle');
+            const label = document.getElementById('auto-label');
+            const status = document.getElementById('symbols-status');
+
+            if (autoTradeEnabled) {
+                toggle.classList.add('active');
+                label.className = 'auto-label on';
+                label.textContent = 'AUTO';
+                status.textContent = ' -- active';
+                status.style.color = '#3fb950';
+            } else {
+                toggle.classList.remove('active');
+                label.className = 'auto-label off';
+                label.textContent = 'AUTO';
+                status.textContent = ' -- off';
+                status.style.color = '#484f58';
+            }
+        }
+
+        async function fetchAutoTradeStatus() {
+            try {
+                const data = await fetch(`${API_BASE}/api/admin/auto-trade`).then(r => r.json());
+                autoTradeEnabled = data.enabled;
+                updateAutoTradeUI();
+
+                const grid = document.getElementById('symbol-grid');
+                const symbols = data.symbols || [];
+
+                if (symbols.length === 0) {
+                    grid.innerHTML = '<div class="symbol-item"><span class="symbol-name">No symbols configured</span></div>';
+                    return;
+                }
+
+                grid.innerHTML = symbols.map(s => {
+                    const regimeClass = s.regime || 'unknown';
+                    const signalParts = (s.last_signal || 'hold').split('@');
+                    const signalAction = signalParts[0];
+                    const signalClass = signalAction === 'buy' ? 'buy' : signalAction === 'sell' ? 'sell' : 'hold';
+                    const signalPrice = signalParts[1] ? ` @ A$${(parseInt(signalParts[1]) / 100).toFixed(2)}` : '';
+
+                    return `
+                        <div class="symbol-item">
+                            <div class="symbol-header">
+                                <span class="symbol-name">${s.symbol}</span>
+                                <span class="regime-tag ${regimeClass}">${s.regime}</span>
+                            </div>
+                            <div class="symbol-strategy">Strategy: ${s.active_strategy}</div>
+                            <div class="symbol-signal ${signalClass}">Signal: ${signalAction}${signalPrice}</div>
+                            <div style="font-size:11px; color:#484f58; margin-top:4px;">${s.market} · ${s.timeframe}</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                // Silently fail for auto-trade status
+            }
+        }
+
+        async function fetchRecentTrades() {
+            try {
+                const data = await fetch(`${API_BASE}/api/trades/`).then(r => r.json());
+                const log = document.getElementById('signal-log');
+                const trades = (data.trades || []).slice(0, 10);
+
+                if (trades.length === 0) {
+                    log.innerHTML = '<div class="signal-entry"><span class="signal-reason" style="color:#484f58;">No trades yet</span></div>';
+                    return;
+                }
+
+                log.innerHTML = trades.map(t => {
+                    const time = t.created_at ? new Date(t.created_at).toLocaleTimeString('en-AU', { hour12: false, timeZone: 'Australia/Sydney' }) : '--';
+                    const actionClass = t.side === 'buy' ? 'buy' : 'sell';
+                    const price = t.price_cents ? `A$${(t.price_cents / 100).toFixed(2)}` : '';
+                    const reason = t.reason || t.strategy || '';
+                    return `
+                        <div class="signal-entry">
+                            <span class="signal-time">${time}</span>
+                            <span class="signal-action ${actionClass}">${t.side}</span>
+                            <span class="signal-sym">${t.symbol}</span>
+                            <span style="color:#e1e4e8; min-width:80px;">${price}</span>
+                            <span class="signal-reason">${reason}</span>
+                            <span style="font-size:11px; color:${t.status === 'filled' ? '#3fb950' : '#f85149'};">${t.status}</span>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                // Silently fail
+            }
+        }
+
         // Initial fetch
         document.getElementById('log-entries').innerHTML = '';
         addLog('info', 'FlashTrade dashboard loaded');
@@ -1105,13 +1380,17 @@
         fetchStatus();
         fetchPrices();
         fetchPositions();
+        fetchAutoTradeStatus();
+        fetchRecentTrades();
         fetchMarketStatus();
         fetchDataQuality();
 
-        // Poll every 30 seconds
+        // Poll intervals
         setInterval(fetchStatus, 30000);
         setInterval(fetchPrices, 30000);
         setInterval(fetchPositions, 15000);
+        setInterval(fetchAutoTradeStatus, 15000);
+        setInterval(fetchRecentTrades, 15000);
         setInterval(fetchMarketStatus, 60000);
         setInterval(fetchDataQuality, 300000); // every 5 min
     </script>
