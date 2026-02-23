@@ -231,6 +231,68 @@ class PaperExecutor:
                 for t in trades
             ]
 
+    async def close_position(self, symbol: str, current_price_cents: int) -> dict:
+        """Close a specific position at the given price."""
+        order = Order(
+            symbol=symbol,
+            market="crypto",
+            side="sell",
+            order_type="market",
+            quantity_cents=1,  # Will be overridden by actual position size
+            price_cents=current_price_cents,
+            stop_loss_cents=current_price_cents,
+            strategy="stop_loss",
+            reason=f"Stop-loss triggered at {current_price_cents} cents",
+        )
+        async with async_session() as session:
+            now = datetime.now(timezone.utc)
+
+            # Get the actual position
+            result = await session.execute(
+                select(Position).where(Position.symbol == symbol)
+            )
+            pos = result.scalar_one_or_none()
+            if not pos:
+                return {"status": "no_position", "symbol": symbol}
+
+            # Calculate P&L
+            pnl_cents = (current_price_cents - pos.entry_price_cents) * pos.quantity // current_price_cents
+            self._risk_manager.record_trade_result(pnl_cents)
+
+            trade = Trade(
+                symbol=symbol,
+                market=pos.market,
+                side="sell",
+                order_type="market",
+                quantity_cents=pos.quantity,
+                price_cents=current_price_cents,
+                stop_loss_cents=pos.stop_loss_cents,
+                status="filled",
+                strategy="stop_loss",
+                reason=f"Stop-loss triggered. P&L: {pnl_cents} cents",
+                created_at=now,
+                filled_at=now,
+            )
+            session.add(trade)
+
+            journal = JournalEntry(
+                trade_id=None,
+                symbol=symbol,
+                action="stop_loss_close",
+                strategy=pos.strategy,
+                reasoning=f"Stop-loss hit at {current_price_cents} cents. P&L: {pnl_cents} cents",
+                created_at=now,
+            )
+            session.add(journal)
+
+            await session.execute(
+                delete(Position).where(Position.symbol == symbol)
+            )
+            await session.commit()
+
+            logger.info("Stop-loss close: %s, P&L: %d cents", symbol, pnl_cents)
+            return {"status": "closed", "symbol": symbol, "pnl_cents": pnl_cents}
+
     async def close_all_positions(self) -> list[dict]:
         """Emergency: close all open positions at current price."""
         positions = await self.get_positions()

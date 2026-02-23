@@ -105,8 +105,12 @@ class RiskManager:
                 ),
             )
 
-        # Rule: max per-trade risk
-        risk_per_trade_cents = abs(order.price_cents - order.stop_loss_cents)
+        # Rule: max per-trade risk (scaled to position size)
+        if order.price_cents > 0:
+            stop_distance_pct = abs(order.price_cents - order.stop_loss_cents) / order.price_cents
+            risk_per_trade_cents = int(order.quantity_cents * stop_distance_pct)
+        else:
+            risk_per_trade_cents = order.quantity_cents
         max_risk_cents = int(
             self._portfolio_value_cents * settings.max_per_trade_risk_pct / 100
         )

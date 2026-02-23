@@ -6,17 +6,16 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            cd /opt/FlashTrade
-            git pull origin main
-            docker compose build trader celery-worker celery-beat
-            docker compose up -d
-            echo "Deployed at $(date)"
+      - name: Pull latest code
+        run: |
+          cd /opt/FlashTrade
+          git pull origin main
+
+      - name: Rebuild and restart
+        run: |
+          cd /opt/FlashTrade
+          docker compose build trader celery-worker celery-beat
+          docker compose up -d
+          echo "Deployed at $(date)"

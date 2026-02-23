@@ -18,6 +18,7 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     beat_schedule={
+        # --- Data pulls ---
         # Crypto: every 1 minute, 24/7
         "pull-crypto-1m": {
             "task": "app.tasks.data_tasks.pull_crypto_data",
@@ -32,6 +33,17 @@ celery_app.conf.update(
         "pull-asx-stocks-15m": {
             "task": "app.tasks.data_tasks.pull_asx_data",
             "schedule": crontab(minute="*/15", hour="23,0-7", day_of_week="0-4"),
+        },
+        # --- Trading ---
+        # Evaluate signals every 5 minutes (strategies check market hours internally)
+        "evaluate-signals-5m": {
+            "task": "app.tasks.trade_tasks.evaluate_signals",
+            "schedule": 300.0,
+        },
+        # Check stop-losses every 60 seconds
+        "check-stops-1m": {
+            "task": "app.tasks.trade_tasks.check_stop_losses",
+            "schedule": 60.0,
         },
     },
 )
