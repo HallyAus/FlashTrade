@@ -42,8 +42,11 @@ class Settings(BaseSettings):
     # App
     app_env: str = Field(default="development")
     log_level: str = Field(default="INFO")
-    secret_key: str = Field(default="changeme")
-    allowed_hosts: str = Field(default="localhost")
+    secret_key: str = Field(default="")
+    allowed_hosts: str = Field(default="https://trade.printforge.com.au,http://localhost:8000")
+
+    # API authentication key for admin/trade endpoints (set in .env)
+    api_key: str = Field(default="")
 
 
 settings = Settings()

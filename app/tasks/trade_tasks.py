@@ -36,12 +36,29 @@ def evaluate_signals(self) -> dict:
 
 
 async def _evaluate_signals_async() -> dict:
+    from datetime import datetime, timezone
+
+    import redis.asyncio as aioredis
+
     from app.api.admin import risk_manager
+    from app.config import settings
     from app.services.execution.paper_executor import PaperExecutor
     from app.services.risk_manager import Order
     from app.services.strategy.auto_trader import AutoTrader, WATCHED_SYMBOLS
 
     trader = AutoTrader()
+
+    # Record evaluation timestamp in Redis for the dashboard countdown timer
+    try:
+        r = aioredis.from_url(settings.redis_url, decode_responses=True)
+        await r.set(
+            "flashtrade:last_evaluated_at",
+            datetime.now(timezone.utc).isoformat(),
+            ex=600,
+        )
+        await r.close()
+    except Exception as e:
+        logger.warning("Failed to record evaluation timestamp: %s", e)
 
     if not await trader.is_enabled():
         logger.info("Auto-trade disabled, skipping signal evaluation")
@@ -112,6 +129,7 @@ def check_stop_losses(self) -> dict:
 async def _check_stop_losses_async() -> dict:
     from app.api.admin import risk_manager
     from app.services.data.ccxt_feed import CCXTFeed
+    from app.services.data.yfinance_feed import YFinanceFeed
     from app.services.execution.paper_executor import PaperExecutor
 
     executor = PaperExecutor(risk_manager)
@@ -120,14 +138,32 @@ async def _check_stop_losses_async() -> dict:
     if not positions:
         return {"status": "ok", "checked": 0, "closed": 0}
 
-    # Get current prices
-    feed = CCXTFeed()
+    # Get current prices from all feeds (crypto + stocks)
+    prices: dict[str, int] = {}
+    errors = []
+
+    # Crypto prices
     try:
-        prices_raw = await feed.get_prices()
-        prices = {p.symbol: p.price_cents for p in prices_raw}
+        crypto_feed = CCXTFeed()
+        crypto_raw = await crypto_feed.get_prices()
+        for p in crypto_raw:
+            prices[p.symbol] = p.price_cents
     except Exception as e:
-        logger.error("Failed to fetch prices for stop-loss check: %s", e)
-        return {"status": "error", "error": str(e)}
+        logger.error("Failed to fetch crypto prices for stop-loss check: %s", e)
+        errors.append(f"crypto: {e}")
+
+    # Stock prices (ASX + US)
+    try:
+        stock_feed = YFinanceFeed()
+        stock_raw = await stock_feed.get_prices()
+        for p in stock_raw:
+            prices[p.symbol] = p.price_cents
+    except Exception as e:
+        logger.error("Failed to fetch stock prices for stop-loss check: %s", e)
+        errors.append(f"stocks: {e}")
+
+    if not prices:
+        return {"status": "error", "error": f"No price data available: {'; '.join(errors)}"}
 
     closed = 0
     for pos in positions:

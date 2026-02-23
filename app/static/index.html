@@ -37,6 +37,12 @@
 
         .logo span { color: #f0883e; }
 
+        .header-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
         .status-badge {
             display: flex;
             align-items: center;
@@ -91,6 +97,10 @@
         @media (max-width: 900px) {
             .stats-row { grid-template-columns: repeat(2, 1fr); }
         }
+        @media (max-width: 600px) {
+            .stats-row { grid-template-columns: 1fr; }
+            .container { padding: 12px; }
+        }
 
         .card {
             background: #161b22;
@@ -103,7 +113,7 @@
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #8b949e;
+            color: #9ca3af;
             margin-bottom: 12px;
         }
 
@@ -114,12 +124,13 @@
         }
 
         .card-value.green { color: #3fb950; }
+        .card-value.red { color: #f85149; }
         .card-value.blue { color: #58a6ff; }
         .card-value.orange { color: #f0883e; }
 
         .card-sub {
             font-size: 13px;
-            color: #8b949e;
+            color: #9ca3af;
             margin-top: 4px;
         }
 
@@ -139,7 +150,7 @@
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #8b949e;
+            color: #9ca3af;
             padding: 8px 12px;
             border-bottom: 1px solid #21262d;
         }
@@ -199,12 +210,12 @@
             padding: 4px 0;
         }
 
-        .log-time { color: #484f58; min-width: 85px; }
+        .log-time { color: #6b7280; min-width: 85px; }
         .log-level { min-width: 50px; font-weight: 600; }
         .log-level.info { color: #58a6ff; }
         .log-level.ok { color: #3fb950; }
         .log-level.warn { color: #d29922; }
-        .log-msg { color: #8b949e; }
+        .log-msg { color: #9ca3af; }
 
         /* Auto-trade toggle */
         .auto-trade-toggle {
@@ -212,6 +223,8 @@
             align-items: center;
             gap: 8px;
             cursor: pointer;
+            min-height: 44px;
+            padding: 4px;
         }
 
         .toggle-switch {
@@ -254,7 +267,7 @@
         }
 
         .auto-label.on { color: #3fb950; }
-        .auto-label.off { color: #8b949e; }
+        .auto-label.off { color: #9ca3af; }
 
         /* Recommended symbols */
         .symbols-card { grid-column: 1 / -1; }
@@ -270,7 +283,7 @@
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #8b949e;
+            color: #9ca3af;
             padding: 8px 12px;
             border-bottom: 1px solid #21262d;
         }
@@ -314,11 +327,11 @@
         .regime-tag.trending { background: rgba(88, 166, 255, 0.15); color: #58a6ff; }
         .regime-tag.ranging { background: rgba(136, 87, 229, 0.15); color: #a371f7; }
         .regime-tag.volatile { background: rgba(187, 128, 9, 0.15); color: #d29922; }
-        .regime-tag.unknown { background: rgba(139, 148, 158, 0.15); color: #8b949e; }
+        .regime-tag.unknown { background: rgba(139, 148, 158, 0.15); color: #9ca3af; }
 
         .symbol-strategy {
             font-size: 12px;
-            color: #8b949e;
+            color: #9ca3af;
             margin-bottom: 4px;
         }
 
@@ -329,7 +342,7 @@
 
         .symbol-signal.buy { color: #3fb950; }
         .symbol-signal.sell { color: #f85149; }
-        .symbol-signal.hold { color: #8b949e; }
+        .symbol-signal.hold { color: #9ca3af; }
 
         /* Signal log */
         .signal-log {
@@ -347,7 +360,7 @@
             align-items: center;
         }
 
-        .signal-time { color: #484f58; min-width: 70px; }
+        .signal-time { color: #6b7280; min-width: 70px; }
         .signal-action {
             min-width: 40px;
             font-weight: 700;
@@ -355,9 +368,9 @@
         }
         .signal-action.buy { color: #3fb950; }
         .signal-action.sell { color: #f85149; }
-        .signal-action.hold { color: #8b949e; }
+        .signal-action.hold { color: #9ca3af; }
         .signal-sym { color: #e1e4e8; min-width: 60px; font-weight: 600; }
-        .signal-reason { color: #8b949e; flex: 1; }
+        .signal-reason { color: #9ca3af; flex: 1; }
 
         /* Footer */
         .footer {
@@ -368,7 +381,7 @@
             justify-content: space-between;
             align-items: center;
             font-size: 12px;
-            color: #484f58;
+            color: #6b7280;
         }
 
         .footer a { color: #58a6ff; text-decoration: none; }
@@ -385,6 +398,7 @@
             font-weight: 600;
             cursor: pointer;
             font-family: inherit;
+            min-height: 44px;
         }
 
         .kill-btn:hover {
@@ -439,9 +453,9 @@
         .price-change { font-size: 13px; font-weight: 600; }
         .price-change.up { color: #3fb950; }
         .price-change.down { color: #f85149; }
-        .price-change.flat { color: #8b949e; }
+        .price-change.flat { color: #9ca3af; }
 
-        .price-meta { font-size: 11px; color: #484f58; margin-top: 6px; }
+        .price-meta { font-size: 11px; color: #6b7280; margin-top: 6px; }
 
         .price-error {
             color: #d29922;
@@ -458,6 +472,10 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 12px;
             margin-top: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .session-grid { grid-template-columns: 1fr; }
         }
 
         .session-card {
@@ -478,7 +496,7 @@
         }
         .session-badge.open { background: rgba(46, 160, 67, 0.15); color: #3fb950; }
         .session-badge.closed { background: rgba(248, 81, 73, 0.15); color: #f85149; }
-        .session-detail { font-size: 11px; color: #484f58; margin-top: 6px; }
+        .session-detail { font-size: 11px; color: #6b7280; margin-top: 6px; }
 
         /* Data health */
         .health-grid {
@@ -499,7 +517,7 @@
         }
 
         .health-label { font-size: 13px; color: #e1e4e8; }
-        .health-label small { color: #484f58; font-size: 11px; }
+        .health-label small { color: #6b7280; font-size: 11px; }
         .health-stat { font-size: 12px; font-weight: 600; }
         .health-stat.ok { color: #3fb950; }
         .health-stat.warn { color: #d29922; }
@@ -510,7 +528,7 @@
             margin-top: 12px;
             font-size: 13px;
         }
-        .health-summary span { color: #8b949e; }
+        .health-summary span { color: #9ca3af; }
 
         /* Trade form */
         .trade-card { grid-column: 1 / -1; }
@@ -522,11 +540,17 @@
             margin-top: 12px;
         }
 
+        @media (max-width: 768px) {
+            .trade-form { grid-template-columns: 1fr; }
+            .trade-actions { flex-direction: column; }
+            .btn-buy, .btn-sell { width: 100%; }
+        }
+
         .trade-form label {
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #8b949e;
+            color: #9ca3af;
             display: block;
             margin-bottom: 4px;
         }
@@ -547,6 +571,17 @@
             outline: none;
         }
 
+        .trade-form input.invalid {
+            border-color: #f85149;
+        }
+
+        .field-error {
+            font-size: 11px;
+            color: #f85149;
+            margin-top: 2px;
+            min-height: 14px;
+        }
+
         .trade-actions {
             display: flex;
             gap: 8px;
@@ -561,6 +596,12 @@
             font-weight: 700;
             cursor: pointer;
             font-family: inherit;
+            min-height: 44px;
+        }
+
+        .btn-buy:disabled, .btn-sell:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .btn-buy {
@@ -568,14 +609,14 @@
             color: #3fb950;
             border: 1px solid rgba(46, 160, 67, 0.3);
         }
-        .btn-buy:hover { background: rgba(46, 160, 67, 0.25); }
+        .btn-buy:hover:not(:disabled) { background: rgba(46, 160, 67, 0.25); }
 
         .btn-sell {
             background: rgba(248, 81, 73, 0.15);
             color: #f85149;
             border: 1px solid rgba(248, 81, 73, 0.3);
         }
-        .btn-sell:hover { background: rgba(248, 81, 73, 0.25); }
+        .btn-sell:hover:not(:disabled) { background: rgba(248, 81, 73, 0.25); }
 
         .trade-result {
             margin-top: 10px;
@@ -599,7 +640,7 @@
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #8b949e;
+            color: #9ca3af;
             padding: 8px;
             border-bottom: 1px solid #21262d;
         }
@@ -630,6 +671,7 @@
             font-size: 13px;
             font-family: inherit;
             cursor: pointer;
+            min-height: 36px;
         }
 
         .chart-controls select:focus { border-color: #58a6ff; outline: none; }
@@ -648,6 +690,36 @@
             border-radius: 6px;
             overflow: hidden;
         }
+
+        @media (max-width: 768px) {
+            #chart-container { height: 250px; }
+        }
+        @media (max-width: 480px) {
+            #chart-container { height: 180px; }
+        }
+
+        /* Error banner for tables */
+        .table-error {
+            color: #f85149;
+            text-align: center;
+            padding: 12px;
+            font-size: 12px;
+        }
+
+        /* Keyboard shortcut hint */
+        .kbd-hint {
+            font-size: 10px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+        kbd {
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 3px;
+            padding: 1px 5px;
+            font-size: 10px;
+            font-family: inherit;
+        }
     </style>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
@@ -655,12 +727,17 @@
     <div class="container">
         <div class="header">
             <div class="logo">Flash<span>Trade</span></div>
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <div class="auto-trade-toggle" onclick="toggleAutoTrade()" title="Toggle auto-trading">
+            <div class="header-controls">
+                <div class="auto-trade-toggle"
+                     role="switch"
+                     aria-checked="false"
+                     aria-label="Toggle auto-trading"
+                     tabindex="0"
+                     id="auto-trade-toggle">
                     <div class="toggle-switch" id="auto-toggle"></div>
                     <span class="auto-label off" id="auto-label">AUTO</span>
                 </div>
-                <button class="kill-btn" onclick="killSwitch()">KILL SWITCH</button>
+                <button class="kill-btn" id="kill-btn" aria-label="Emergency stop - halts all trading immediately">KILL SWITCH</button>
                 <div class="status-badge online" id="status-badge">
                     <div class="pulse"></div>
                     <span id="status-text">LOADING...</span>
@@ -682,13 +759,13 @@
             </div>
 
             <div class="card">
-                <div class="card-header">Unrealized P&L</div>
+                <div class="card-header">Unrealized P&amp;L</div>
                 <div class="card-value" id="unrealized-pnl">A$0.00</div>
                 <div class="card-sub" id="unrealized-sub">No open positions</div>
             </div>
 
             <div class="card">
-                <div class="card-header">Realized P&L</div>
+                <div class="card-header">Realized P&amp;L</div>
                 <div class="card-value" id="realized-pnl">A$0.00</div>
                 <div class="card-sub" id="realized-sub">No closed trades</div>
             </div>
@@ -699,7 +776,7 @@
                 <div class="card-header">Trade</div>
                 <div class="trade-form">
                     <div>
-                        <label>Symbol</label>
+                        <label for="trade-symbol">Symbol</label>
                         <select id="trade-symbol">
                             <option value="BTC">BTC</option>
                             <option value="ETH">ETH</option>
@@ -714,15 +791,19 @@
                         </select>
                     </div>
                     <div>
-                        <label>Amount (AUD)</label>
-                        <input type="number" id="trade-amount" value="50" min="10" max="100" step="10">
+                        <label for="trade-amount">Amount (AUD)</label>
+                        <input type="number" id="trade-amount" value="50" min="10" max="100" step="10"
+                               title="Position size in AUD. Min $10, max $100.">
+                        <div class="field-error" id="amount-error"></div>
                     </div>
                     <div>
-                        <label>Stop Loss %</label>
-                        <input type="number" id="trade-sl-pct" value="5" min="1" max="20" step="1">
+                        <label for="trade-sl-pct">Stop Loss %</label>
+                        <input type="number" id="trade-sl-pct" value="5" min="1" max="20" step="1"
+                               title="If price moves against you by this %, position auto-closes to limit losses.">
+                        <div class="field-error" id="sl-error"></div>
                     </div>
                     <div>
-                        <label>Strategy</label>
+                        <label for="trade-strategy">Strategy</label>
                         <select id="trade-strategy">
                             <option value="manual">Manual</option>
                             <option value="momentum">Momentum</option>
@@ -731,8 +812,8 @@
                     </div>
                 </div>
                 <div class="trade-actions">
-                    <button class="btn-buy" onclick="placeTrade('buy')">BUY</button>
-                    <button class="btn-sell" onclick="placeTrade('sell')">SELL</button>
+                    <button class="btn-buy" id="btn-buy" aria-label="Place buy order">BUY</button>
+                    <button class="btn-sell" id="btn-sell" aria-label="Place sell order">SELL</button>
                 </div>
                 <div class="trade-result" id="trade-result"></div>
             </div>
@@ -748,11 +829,11 @@
                             <th>Current</th>
                             <th>Stop Loss</th>
                             <th>Size</th>
-                            <th>P&L</th>
+                            <th>P&amp;L</th>
                         </tr>
                     </thead>
                     <tbody id="positions-body">
-                        <tr><td colspan="7" style="color:#484f58; text-align:center;">No open positions</td></tr>
+                        <tr><td colspan="7" style="color:#6b7280; text-align:center;">No open positions</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -760,39 +841,39 @@
             <div class="card symbols-card">
                 <div class="card-header">
                     Watched Symbols
-                    <span id="symbols-status" style="font-size:11px; color:#484f58; text-transform:none; letter-spacing:0;"> -- auto-trade off</span>
+                    <span id="symbols-status" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0;"> -- auto-trade off</span>
                 </div>
-                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; margin-bottom:4px; font-size:11px; color:#8b949e;">
-                    <span><span class="regime-tag trending">Trending</span> Momentum (RSI+MACD)</span>
-                    <span><span class="regime-tag ranging">Ranging</span> Mean Reversion (Bollinger)</span>
-                    <span><span class="regime-tag volatile">Volatile</span> Conservative</span>
-                    <span><span class="regime-tag unknown">Unknown</span> Needs data</span>
+                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; margin-bottom:4px; font-size:11px; color:#9ca3af;">
+                    <span><span class="regime-tag trending" title="Strong directional price movement detected via ADX indicator">Trending</span> Momentum (RSI+MACD)</span>
+                    <span><span class="regime-tag ranging" title="Price oscillating in a range, detected via Bollinger Band width">Ranging</span> Mean Reversion (Bollinger)</span>
+                    <span><span class="regime-tag volatile" title="High price swings, conservative position sizing applied">Volatile</span> Conservative</span>
+                    <span><span class="regime-tag unknown" title="Insufficient price data to classify market conditions">Unknown</span> Needs data</span>
                 </div>
-                <div style="font-size:11px; color:#484f58; margin-bottom:12px;">
+                <div style="font-size:11px; color:#6b7280; margin-bottom:12px;">
                     Signals: <strong style="color:#3fb950;">buy</strong> = entry conditions met,
                     <strong style="color:#f85149;">sell</strong> = exit conditions met,
-                    <strong style="color:#8b949e;">hold</strong> = no action, waiting for setup.
-                    Timeframe = candle size used for analysis. Checked every 5 min.
+                    <strong style="color:#9ca3af;">hold</strong> = no action, waiting for setup.
+                    <span title="Candle interval used for technical analysis. 1h = hourly bars, 1d = daily bars.">Timeframe = candle size for analysis.</span>
                     <span id="next-check" style="color:#58a6ff;"></span>
                 </div>
                 <table class="symbols-table" id="symbols-table">
                     <thead>
                         <tr>
                             <th>Symbol</th>
-                            <th>Regime</th>
-                            <th>Strategy</th>
-                            <th>Signal</th>
-                            <th>Timeframe</th>
+                            <th title="Market condition detected by ADX + Bollinger Band analysis">Regime</th>
+                            <th title="Trading strategy selected based on market regime">Strategy</th>
+                            <th title="Latest signal: buy/sell/hold">Signal</th>
+                            <th title="Candle interval used for analysis">Timeframe</th>
                         </tr>
                     </thead>
                     <tbody id="symbols-body">
-                        <tr><td colspan="5" style="color:#484f58; text-align:center;">Loading...</td></tr>
+                        <tr><td colspan="5" style="color:#6b7280; text-align:center;">Loading...</td></tr>
                     </tbody>
                 </table>
                 <div class="card-header" style="margin-top:16px;">Trade Log</div>
                 <div class="signal-log" id="signal-log">
                     <div class="signal-entry">
-                        <span class="signal-reason" style="color:#484f58;">Waiting for trades...</span>
+                        <span class="signal-reason" style="color:#6b7280;">Waiting for trades...</span>
                     </div>
                 </div>
             </div>
@@ -800,7 +881,7 @@
             <div class="card prices-card">
                 <div class="card-header">
                     Live Prices
-                    <span id="prices-status" style="font-size:11px; color:#484f58; text-transform:none; letter-spacing:0;"> -- loading</span>
+                    <span id="prices-status" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0;"> -- loading</span>
                 </div>
                 <div class="price-grid" id="price-grid"></div>
                 <div id="price-errors"></div>
@@ -809,7 +890,7 @@
             <div class="card chart-card">
                 <div class="card-header">Chart</div>
                 <div class="chart-controls">
-                    <select id="chart-symbol">
+                    <select id="chart-symbol" aria-label="Chart symbol">
                         <option value="BTC">BTC</option>
                         <option value="ETH">ETH</option>
                         <option value="SOL">SOL</option>
@@ -824,16 +905,16 @@
                         <option value="AAPL">AAPL</option>
                         <option value="NVDA">NVDA</option>
                     </select>
-                    <button class="tf-btn active" data-tf="1h" onclick="setTimeframe('1h', this)">1H</button>
-                    <button class="tf-btn" data-tf="4h" onclick="setTimeframe('4h', this)">4H</button>
-                    <button class="tf-btn" data-tf="1d" onclick="setTimeframe('1d', this)">1D</button>
-                    <span id="chart-info" style="font-size:11px; color:#484f58; margin-left:auto;"></span>
+                    <button class="tf-btn active" data-tf="1h" aria-pressed="true" aria-label="1 hour timeframe">1H</button>
+                    <button class="tf-btn" data-tf="4h" aria-pressed="false" aria-label="4 hour timeframe">4H</button>
+                    <button class="tf-btn" data-tf="1d" aria-pressed="false" aria-label="1 day timeframe">1D</button>
+                    <span id="chart-info" style="font-size:11px; color:#6b7280; margin-left:auto;"></span>
                 </div>
                 <div id="chart-container"></div>
             </div>
 
             <div class="card markets-card">
-                <div class="card-header">Market Sessions <span id="session-time" style="font-size:11px; color:#484f58; text-transform:none; letter-spacing:0;"></span></div>
+                <div class="card-header">Market Sessions <span id="session-time" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0;"></span></div>
                 <div class="session-grid" id="session-grid">
                     <div class="session-card">
                         <div class="session-market">ASX</div>
@@ -851,7 +932,7 @@
             </div>
 
             <div class="card markets-card">
-                <div class="card-header">Data Health <span id="dq-status" style="font-size:11px; color:#484f58; text-transform:none; letter-spacing:0;"></span></div>
+                <div class="card-header">Data Health <span id="dq-status" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0;"></span></div>
                 <div class="health-summary" id="health-summary"></div>
                 <div class="health-grid" id="health-grid">
                     <div class="health-item">
@@ -869,11 +950,12 @@
                         <span class="log-msg">Connecting to FlashTrade API...</span>
                     </div>
                 </div>
+                <div class="kbd-hint">Shortcuts: <kbd>K</kbd> Kill Switch</div>
             </div>
         </div>
 
         <div class="footer">
-            <span>FlashTrade v0.6.0 &mdash; Day 5 Auto-Trading</span>
+            <span>FlashTrade v0.7.0 &mdash; Day 5 Auto-Trading</span>
             <span>
                 <a href="https://github.com/HallyAus/FlashTrade" target="_blank">GitHub</a>
                 &nbsp;&middot;&nbsp;
@@ -883,40 +965,111 @@
     </div>
 
     <script>
-        const API_BASE = window.location.origin;
+    // ============================================================
+    // FlashTrade Dashboard — all state namespaced, XSS-safe, accessible
+    // ============================================================
+    const FT = {
+        // --- Config: all magic numbers in one place ---
+        CONFIG: {
+            API_BASE: window.location.origin,
+            POLL_FAST_MS: 15000,       // positions, symbols, trades
+            POLL_MEDIUM_MS: 30000,     // status, prices
+            POLL_SLOW_MS: 60000,       // market sessions
+            POLL_DQ_MS: 300000,        // data quality (5 min)
+            LOG_MAX_ENTRIES: 10,
+            PRICE_MAX_AGE_MS: 60000,   // refuse trades if prices older than 60s
+            CHART_LOOKBACK: { '1h': 30, '4h': 90, '1d': 180 },
+            EVALUATE_INTERVAL: 300,    // default, updated from server
+            API_KEY: new URLSearchParams(window.location.search).get('api_key') || '',
+        },
 
-        function timeNow() {
+        // --- State ---
+        state: {
+            autoTradeEnabled: false,
+            latestPrices: {},
+            pricesFetchedAt: 0,
+            chart: null,
+            candleSeries: null,
+            volumeSeries: null,
+            chartResizeObserver: null,
+            currentTF: '1h',
+            isPlacingTrade: false,
+            nextCheckSeconds: -1,
+            pollIntervals: [],
+            // Incremental update hashes
+            lastPositionsHash: '',
+            lastSymbolsHash: '',
+        },
+
+        // --- Centralized API helper with HTTP status checking ---
+        // API key can be set via: FT.CONFIG.API_KEY = 'your-key'
+        // or via URL param: ?api_key=your-key (for dev convenience)
+        async api(url, opts) {
+            opts = opts || {};
+            if (!opts.headers) opts.headers = {};
+            // Inject API key if configured
+            const key = this.CONFIG.API_KEY;
+            if (key) {
+                opts.headers['X-API-Key'] = key;
+            }
+            const res = await fetch(url, opts);
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+            return res.json();
+        },
+
+        // --- Safe text helper: escapes for textContent, never innerHTML ---
+        safeText(el, text) {
+            el.textContent = text;
+        },
+
+        // --- Logging ---
+        timeNow() {
             return new Date().toLocaleTimeString('en-AU', {
                 hour12: false,
                 timeZone: 'Australia/Sydney'
             });
-        }
+        },
 
-        function addLog(level, msg) {
+        addLog(level, msg) {
             const entries = document.getElementById('log-entries');
             const entry = document.createElement('div');
             entry.className = 'log-entry';
-            entry.innerHTML = `
-                <span class="log-time">${timeNow()}</span>
-                <span class="log-level ${level}">${level.toUpperCase()}</span>
-                <span class="log-msg">${msg}</span>
-            `;
+
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'log-time';
+            timeSpan.textContent = this.timeNow();
+
+            const levelSpan = document.createElement('span');
+            levelSpan.className = 'log-level ' + level;
+            levelSpan.textContent = level.toUpperCase();
+
+            const msgSpan = document.createElement('span');
+            msgSpan.className = 'log-msg';
+            msgSpan.textContent = msg;
+
+            entry.appendChild(timeSpan);
+            entry.appendChild(levelSpan);
+            entry.appendChild(msgSpan);
             entries.appendChild(entry);
-            // Keep last 10 entries
-            while (entries.children.length > 10) {
+
+            while (entries.children.length > this.CONFIG.LOG_MAX_ENTRIES) {
                 entries.removeChild(entries.firstChild);
             }
-        }
+        },
 
-        async function fetchStatus() {
+        // ============================================================
+        // Status & Portfolio
+        // ============================================================
+        async fetchStatus() {
             try {
                 const [root, portfolio, admin] = await Promise.all([
-                    fetch(`${API_BASE}/api`).then(r => r.json()),
-                    fetch(`${API_BASE}/api/dashboard/portfolio`).then(r => r.json()),
-                    fetch(`${API_BASE}/api/admin/status`).then(r => r.json()),
+                    this.api(`${this.CONFIG.API_BASE}/api`),
+                    this.api(`${this.CONFIG.API_BASE}/api/dashboard/portfolio`),
+                    this.api(`${this.CONFIG.API_BASE}/api/admin/status`),
                 ]);
 
-                // Update status badge
                 const badge = document.getElementById('status-badge');
                 const statusText = document.getElementById('status-text');
                 if (admin.halted) {
@@ -935,134 +1088,224 @@
                 document.getElementById('cash-available').textContent =
                     'A$' + cash.toLocaleString('en-AU', { minimumFractionDigits: 2 });
                 document.getElementById('cash-sub').textContent =
-                    `of A$${starting.toLocaleString('en-AU', { minimumFractionDigits: 2 })} initial`;
+                    'of A$' + starting.toLocaleString('en-AU', { minimumFractionDigits: 2 }) + ' initial';
 
-                // Card 2: Portfolio Value (open positions only)
+                // Card 2: Portfolio Value
                 const posValue = (portfolio.positions_value_cents || 0) / 100;
                 const posEl = document.getElementById('portfolio-value');
                 posEl.textContent = 'A$' + posValue.toLocaleString('en-AU', { minimumFractionDigits: 2 });
                 posEl.className = 'card-value ' + (posValue > 0 ? 'green' : '');
                 const posCount = portfolio.open_positions_count || 0;
                 document.getElementById('portfolio-sub').textContent =
-                    posCount > 0 ? `${posCount} open position${posCount > 1 ? 's' : ''}` : 'No open positions';
+                    posCount > 0 ? posCount + ' open position' + (posCount > 1 ? 's' : '') : 'No open positions';
 
                 // Card 3: Unrealized P&L
                 const unrealized = (portfolio.unrealized_pnl_cents || 0) / 100;
                 const unrealizedEl = document.getElementById('unrealized-pnl');
                 const uSign = unrealized >= 0 ? '+' : '';
-                unrealizedEl.textContent = `${uSign}A$${Math.abs(unrealized).toFixed(2)}`;
+                unrealizedEl.textContent = uSign + 'A$' + Math.abs(unrealized).toFixed(2);
                 unrealizedEl.className = 'card-value ' + (unrealized > 0 ? 'green' : unrealized < 0 ? 'red' : '');
                 document.getElementById('unrealized-sub').textContent =
-                    posCount > 0 ? `Across ${posCount} position${posCount > 1 ? 's' : ''}` : 'No open positions';
+                    posCount > 0 ? 'Across ' + posCount + ' position' + (posCount > 1 ? 's' : '') : 'No open positions';
 
                 // Card 4: Realized P&L
                 const realized = (portfolio.realized_pnl_cents || 0) / 100;
                 const realizedEl = document.getElementById('realized-pnl');
                 const rSign = realized >= 0 ? '+' : '';
-                realizedEl.textContent = `${rSign}A$${Math.abs(realized).toFixed(2)}`;
+                realizedEl.textContent = rSign + 'A$' + Math.abs(realized).toFixed(2);
                 realizedEl.className = 'card-value ' + (realized > 0 ? 'green' : realized < 0 ? 'red' : '');
                 const totalTrades = portfolio.total_trades || 0;
                 document.getElementById('realized-sub').textContent =
-                    totalTrades > 0 ? `From ${totalTrades} trade${totalTrades > 1 ? 's' : ''}` : 'No closed trades';
+                    totalTrades > 0 ? 'From ' + totalTrades + ' trade' + (totalTrades > 1 ? 's' : '') : 'No closed trades';
 
-                addLog('ok', `System healthy | Cash: A$${cash.toFixed(2)} | Positions: A$${posValue.toFixed(2)}`);
+                this.addLog('ok', 'System healthy | Cash: A$' + cash.toFixed(2) + ' | Positions: A$' + posValue.toFixed(2));
             } catch (err) {
                 document.getElementById('status-text').textContent = 'OFFLINE';
                 document.getElementById('status-badge').className = 'status-badge offline';
-                addLog('warn', `API unreachable: ${err.message}`);
+                this.addLog('warn', 'API unreachable: ' + err.message);
             }
-        }
+        },
 
-        async function killSwitch() {
+        // ============================================================
+        // Kill Switch
+        // ============================================================
+        async killSwitch() {
             if (!confirm('KILL SWITCH: This will halt ALL trading immediately. Are you sure?')) return;
             try {
-                const res = await fetch(`${API_BASE}/api/admin/kill-switch`, { method: 'POST' });
-                const data = await res.json();
-                addLog('warn', `KILL SWITCH ACTIVATED: ${data.message}`);
-                fetchStatus();
+                const data = await this.api(`${this.CONFIG.API_BASE}/api/admin/kill-switch`, { method: 'POST' });
+                this.addLog('warn', 'KILL SWITCH ACTIVATED: ' + data.message);
+                this.fetchStatus();
             } catch (err) {
-                addLog('warn', `Kill switch failed: ${err.message}`);
+                this.addLog('warn', 'Kill switch failed: ' + err.message);
             }
-        }
+        },
 
-        function formatPrice(cents, currency) {
+        // ============================================================
+        // Prices
+        // ============================================================
+        formatPrice(cents, currency) {
             const dollars = cents / 100;
             const sym = currency === 'AUD' ? 'A$' : '$';
             if (dollars >= 1000) {
                 return sym + dollars.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
             return sym + dollars.toFixed(2);
-        }
+        },
 
-        function renderPriceCard(item, type) {
+        createPriceCard(item, type) {
             const changePct = type === 'crypto' ? item.change_24h_pct : item.change_pct;
             const changeClass = changePct > 0 ? 'up' : changePct < 0 ? 'down' : 'flat';
             const delayTag = item.delayed ? ' (15m delay)' : '';
             const changeLabel = type === 'crypto' ? '24h' : 'day';
             const sign = changePct >= 0 ? '+' : '';
-            return `
-                <div class="price-card">
-                    <div class="price-symbol">
-                        ${item.symbol}
-                        <span class="price-tag ${item.market}">${item.market}</span>
-                    </div>
-                    <div class="price-value">${formatPrice(item.price_cents, item.currency)}</div>
-                    <div class="price-change ${changeClass}">${sign}${changePct.toFixed(2)}% ${changeLabel}</div>
-                    <div class="price-meta">${item.currency}${delayTag}</div>
-                </div>
-            `;
-        }
 
-        async function fetchPrices() {
+            const card = document.createElement('div');
+            card.className = 'price-card';
+
+            const symDiv = document.createElement('div');
+            symDiv.className = 'price-symbol';
+            const symText = document.createElement('span');
+            symText.textContent = item.symbol;
+            const tag = document.createElement('span');
+            tag.className = 'price-tag ' + (item.market || type);
+            tag.textContent = item.market || type;
+            symDiv.appendChild(symText);
+            symDiv.appendChild(tag);
+
+            const valDiv = document.createElement('div');
+            valDiv.className = 'price-value';
+            valDiv.textContent = this.formatPrice(item.price_cents, item.currency);
+
+            const changeDiv = document.createElement('div');
+            changeDiv.className = 'price-change ' + changeClass;
+            changeDiv.textContent = sign + changePct.toFixed(2) + '% ' + changeLabel;
+
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'price-meta';
+            metaDiv.textContent = item.currency + delayTag;
+
+            card.appendChild(symDiv);
+            card.appendChild(valDiv);
+            card.appendChild(changeDiv);
+            card.appendChild(metaDiv);
+            return card;
+        },
+
+        async fetchPrices() {
             try {
-                const data = await fetch(`${API_BASE}/api/dashboard/prices`).then(r => r.json());
+                const data = await this.api(`${this.CONFIG.API_BASE}/api/dashboard/prices`);
                 const grid = document.getElementById('price-grid');
                 const errDiv = document.getElementById('price-errors');
                 const status = document.getElementById('prices-status');
 
-                let html = '';
-                for (const item of (data.crypto || [])) html += renderPriceCard(item, 'crypto');
-                for (const item of (data.stocks || [])) html += renderPriceCard(item, 'stock');
+                // Clear and rebuild with DOM API (XSS-safe)
+                grid.innerHTML = '';
+                let count = 0;
+                for (const item of (data.crypto || [])) {
+                    grid.appendChild(this.createPriceCard(item, 'crypto'));
+                    count++;
+                }
+                for (const item of (data.stocks || [])) {
+                    grid.appendChild(this.createPriceCard(item, 'stock'));
+                    count++;
+                }
+                if (count === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'price-meta';
+                    empty.textContent = 'No price data available';
+                    grid.appendChild(empty);
+                }
 
-                grid.innerHTML = html || '<div class="price-meta">No price data available</div>';
-
+                // Errors (safe rendering)
+                errDiv.innerHTML = '';
                 if (data.errors && data.errors.length > 0) {
-                    errDiv.innerHTML = data.errors.map(e =>
-                        `<div class="price-error">${e.source}: ${e.error}</div>`
-                    ).join('');
-                } else {
-                    errDiv.innerHTML = '';
+                    for (const e of data.errors) {
+                        const errEl = document.createElement('div');
+                        errEl.className = 'price-error';
+                        errEl.textContent = e.source + ': ' + e.error;
+                        errDiv.appendChild(errEl);
+                    }
                 }
 
                 const t = new Date(data.fetched_at_utc);
                 status.textContent = ' -- updated ' + t.toLocaleTimeString('en-AU', { hour12: false, timeZone: 'Australia/Sydney' }) + ' AEST';
 
                 // Cache prices for trade form
-                for (const item of (data.crypto || [])) latestPrices[item.symbol] = item.price_cents;
-                for (const item of (data.stocks || [])) latestPrices[item.symbol] = item.price_cents;
+                this.state.pricesFetchedAt = Date.now();
+                for (const item of (data.crypto || [])) this.state.latestPrices[item.symbol] = item.price_cents;
+                for (const item of (data.stocks || [])) this.state.latestPrices[item.symbol] = item.price_cents;
 
                 const cc = (data.crypto || []).length;
                 const sc = (data.stocks || []).length;
-                addLog('info', `Prices: ${cc} crypto, ${sc} stocks`);
+                this.addLog('info', 'Prices: ' + cc + ' crypto, ' + sc + ' stocks');
             } catch (err) {
                 document.getElementById('prices-status').textContent = ' -- error';
-                addLog('warn', `Price fetch failed: ${err.message}`);
+                this.addLog('warn', 'Price fetch failed: ' + err.message);
             }
-        }
+        },
 
-        // ---- Trading ----
-        let latestPrices = {};
+        // ============================================================
+        // Trading (with double-click protection & stale price guard)
+        // ============================================================
+        validateTradeForm() {
+            const amount = parseFloat(document.getElementById('trade-amount').value);
+            const sl = parseFloat(document.getElementById('trade-sl-pct').value);
+            const amountErr = document.getElementById('amount-error');
+            const slErr = document.getElementById('sl-error');
+            const amountInput = document.getElementById('trade-amount');
+            const slInput = document.getElementById('trade-sl-pct');
+            let valid = true;
 
-        async function placeTrade(side) {
+            if (isNaN(amount) || amount < 10) {
+                amountErr.textContent = 'Minimum A$10';
+                amountInput.classList.add('invalid');
+                valid = false;
+            } else if (amount > 100) {
+                amountErr.textContent = 'Maximum A$100';
+                amountInput.classList.add('invalid');
+                valid = false;
+            } else {
+                amountErr.textContent = '';
+                amountInput.classList.remove('invalid');
+            }
+
+            if (isNaN(sl) || sl < 1) {
+                slErr.textContent = 'Minimum 1%';
+                slInput.classList.add('invalid');
+                valid = false;
+            } else if (sl > 20) {
+                slErr.textContent = 'Maximum 20%';
+                slInput.classList.add('invalid');
+                valid = false;
+            } else {
+                slErr.textContent = '';
+                slInput.classList.remove('invalid');
+            }
+
+            return valid;
+        },
+
+        async placeTrade(side) {
+            // Double-click protection
+            if (this.state.isPlacingTrade) return;
+
+            if (!this.validateTradeForm()) return;
+
             const symbol = document.getElementById('trade-symbol').value;
             const amountAud = parseFloat(document.getElementById('trade-amount').value);
             const slPct = parseFloat(document.getElementById('trade-sl-pct').value);
             const strategy = document.getElementById('trade-strategy').value;
 
-            // Get current price from cache
-            const priceCents = latestPrices[symbol] || 0;
+            // Stale price guard
+            const priceAge = Date.now() - this.state.pricesFetchedAt;
+            if (priceAge > this.CONFIG.PRICE_MAX_AGE_MS || this.state.pricesFetchedAt === 0) {
+                this.showTradeResult('error', 'Prices are stale (' + Math.round(priceAge / 1000) + 's old). Wait for refresh.');
+                return;
+            }
+
+            const priceCents = this.state.latestPrices[symbol] || 0;
             if (!priceCents) {
-                showTradeResult('error', 'No price available for ' + symbol + '. Wait for prices to load.');
+                this.showTradeResult('error', 'No price available for ' + symbol + '. Wait for prices to load.');
                 return;
             }
 
@@ -1071,11 +1314,19 @@
                 ? Math.round(priceCents * (1 - slPct / 100))
                 : Math.round(priceCents * (1 + slPct / 100));
 
-            const conf = `${side.toUpperCase()} ${symbol}\nAmount: A$${amountAud}\nPrice: A$${(priceCents/100).toFixed(2)}\nStop Loss: A$${(stopLossCents/100).toFixed(2)} (${slPct}%)`;
+            const conf = side.toUpperCase() + ' ' + symbol +
+                '\nAmount: A$' + amountAud +
+                '\nPrice: A$' + (priceCents / 100).toFixed(2) +
+                '\nStop Loss: A$' + (stopLossCents / 100).toFixed(2) + ' (' + slPct + '%)';
             if (!confirm(conf)) return;
 
+            // Disable buttons
+            this.state.isPlacingTrade = true;
+            document.getElementById('btn-buy').disabled = true;
+            document.getElementById('btn-sell').disabled = true;
+
             try {
-                const resp = await fetch(`${API_BASE}/api/trades/`, {
+                const data = await this.api(`${this.CONFIG.API_BASE}/api/trades/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1087,78 +1338,143 @@
                         price_cents: priceCents,
                         stop_loss_cents: stopLossCents,
                         strategy: strategy,
-                        reason: `Manual ${side} via dashboard`,
+                        reason: 'Manual ' + side + ' via dashboard',
                     }),
                 });
-                const data = await resp.json();
 
                 if (data.status === 'filled') {
-                    showTradeResult('success', `${side.toUpperCase()} ${symbol} filled — Trade #${data.trade_id}`);
-                    addLog('ok', `Trade filled: ${side} ${symbol} A$${amountAud}`);
-                    fetchPositions();
-                    fetchStatus();
+                    this.showTradeResult('success', side.toUpperCase() + ' ' + symbol + ' filled — Trade #' + data.trade_id);
+                    this.addLog('ok', 'Trade filled: ' + side + ' ' + symbol + ' A$' + amountAud);
+                    this.fetchPositions();
+                    this.fetchStatus();
                 } else {
-                    showTradeResult('error', `Rejected: ${data.reason}`);
-                    addLog('warn', `Trade rejected: ${data.reason}`);
+                    this.showTradeResult('error', 'Rejected: ' + (data.reason || 'Unknown'));
+                    this.addLog('warn', 'Trade rejected: ' + (data.reason || 'Unknown'));
                 }
             } catch (err) {
-                showTradeResult('error', `Trade failed: ${err.message}`);
+                this.showTradeResult('error', 'Trade failed: ' + err.message);
+            } finally {
+                this.state.isPlacingTrade = false;
+                document.getElementById('btn-buy').disabled = false;
+                document.getElementById('btn-sell').disabled = false;
             }
-        }
+        },
 
-        function showTradeResult(type, msg) {
+        showTradeResult(type, msg) {
             const el = document.getElementById('trade-result');
             el.className = 'trade-result ' + type;
             el.textContent = msg;
-            setTimeout(() => { el.className = 'trade-result'; }, 8000);
-        }
+            setTimeout(function() { el.className = 'trade-result'; }, 8000);
+        },
 
-        async function fetchPositions() {
+        // ============================================================
+        // Positions (incremental DOM updates)
+        // ============================================================
+        async fetchPositions() {
             try {
-                const data = await fetch(`${API_BASE}/api/trades/positions`).then(r => r.json());
-                const body = document.getElementById('positions-body');
+                const data = await this.api(`${this.CONFIG.API_BASE}/api/trades/positions`);
                 const positions = data.positions || [];
 
+                // Incremental: only rebuild if data changed
+                const hash = JSON.stringify(positions);
+                if (hash === this.state.lastPositionsHash) return;
+                this.state.lastPositionsHash = hash;
+
+                const body = document.getElementById('positions-body');
+
                 if (positions.length === 0) {
-                    body.innerHTML = '<tr><td colspan="7" style="color:#484f58; text-align:center;">No open positions</td></tr>';
+                    body.innerHTML = '';
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    td.colSpan = 7;
+                    td.style.cssText = 'color:#6b7280; text-align:center;';
+                    td.textContent = 'No open positions';
+                    tr.appendChild(td);
+                    body.innerHTML = '';
+                    body.appendChild(tr);
                     return;
                 }
 
-                body.innerHTML = positions.map(p => {
-                    const entry = (p.entry_price_cents / 100).toFixed(2);
-                    const current = (p.current_price_cents / 100).toFixed(2);
-                    const sl = (p.stop_loss_cents / 100).toFixed(2);
-                    const size = (p.quantity / 100).toFixed(2);
-                    const pnl = (p.unrealized_pnl_cents / 100).toFixed(2);
-                    const pnlClass = p.unrealized_pnl_cents >= 0 ? 'pnl-positive' : 'pnl-negative';
-                    const pnlSign = p.unrealized_pnl_cents >= 0 ? '+' : '';
-                    return `<tr>
-                        <td><strong>${p.symbol}</strong></td>
-                        <td>${p.side}</td>
-                        <td>A$${entry}</td>
-                        <td>A$${current}</td>
-                        <td>A$${sl}</td>
-                        <td>A$${size}</td>
-                        <td class="${pnlClass}">${pnlSign}A$${pnl}</td>
-                    </tr>`;
-                }).join('');
+                const frag = document.createDocumentFragment();
+                for (const p of positions) {
+                    const tr = document.createElement('tr');
+
+                    const tdSym = document.createElement('td');
+                    const strong = document.createElement('strong');
+                    strong.textContent = p.symbol;
+                    tdSym.appendChild(strong);
+
+                    const tdSide = document.createElement('td');
+                    tdSide.textContent = p.side;
+
+                    const tdEntry = document.createElement('td');
+                    tdEntry.textContent = 'A$' + (p.entry_price_cents / 100).toFixed(2);
+
+                    const tdCurrent = document.createElement('td');
+                    tdCurrent.textContent = 'A$' + (p.current_price_cents / 100).toFixed(2);
+
+                    const tdSL = document.createElement('td');
+                    tdSL.textContent = 'A$' + (p.stop_loss_cents / 100).toFixed(2);
+
+                    const tdSize = document.createElement('td');
+                    tdSize.textContent = 'A$' + (p.quantity / 100).toFixed(2);
+
+                    const tdPnl = document.createElement('td');
+                    const pnl = p.unrealized_pnl_cents || 0;
+                    const pnlSign = pnl >= 0 ? '+' : '';
+                    tdPnl.textContent = pnlSign + 'A$' + (Math.abs(pnl) / 100).toFixed(2);
+                    tdPnl.className = pnl >= 0 ? 'pnl-positive' : 'pnl-negative';
+
+                    tr.appendChild(tdSym);
+                    tr.appendChild(tdSide);
+                    tr.appendChild(tdEntry);
+                    tr.appendChild(tdCurrent);
+                    tr.appendChild(tdSL);
+                    tr.appendChild(tdSize);
+                    tr.appendChild(tdPnl);
+                    frag.appendChild(tr);
+                }
+
+                body.innerHTML = '';
+                body.appendChild(frag);
             } catch (err) {
-                // Silently fail — positions table stays as-is
+                this.addLog('warn', 'Positions fetch failed: ' + err.message);
+                const body = document.getElementById('positions-body');
+                body.innerHTML = '';
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 7;
+                td.className = 'table-error';
+                td.textContent = 'Failed to load positions';
+                tr.appendChild(td);
+                body.appendChild(tr);
             }
-        }
+        },
 
-        // ---- Chart ----
-        let chart = null;
-        let candleSeries = null;
-        let volumeSeries = null;
-        let currentTF = '1h';
-
-        function initChart() {
+        // ============================================================
+        // Chart (with disposal & null safety)
+        // ============================================================
+        initChart() {
             const container = document.getElementById('chart-container');
-            chart = LightweightCharts.createChart(container, {
+
+            // Dispose old chart
+            if (this.state.chart) {
+                this.state.chart.remove();
+                this.state.chart = null;
+                this.state.candleSeries = null;
+                this.state.volumeSeries = null;
+            }
+
+            // Clean up old observer
+            if (this.state.chartResizeObserver) {
+                this.state.chartResizeObserver.disconnect();
+                this.state.chartResizeObserver = null;
+            }
+
+            this.state.chart = LightweightCharts.createChart(container, {
                 layout: {
                     background: { color: '#0d1117' },
-                    textColor: '#8b949e',
+                    textColor: '#9ca3af',
                 },
                 grid: {
                     vertLines: { color: '#1e2836' },
@@ -1173,7 +1489,7 @@
                 },
             });
 
-            candleSeries = chart.addCandlestickSeries({
+            this.state.candleSeries = this.state.chart.addCandlestickSeries({
                 upColor: '#3fb950',
                 downColor: '#f85149',
                 borderDownColor: '#f85149',
@@ -1182,28 +1498,32 @@
                 wickUpColor: '#3fb950',
             });
 
-            volumeSeries = chart.addHistogramSeries({
+            this.state.volumeSeries = this.state.chart.addHistogramSeries({
                 priceFormat: { type: 'volume' },
                 priceScaleId: '',
             });
-            volumeSeries.priceScale().applyOptions({
+            this.state.volumeSeries.priceScale().applyOptions({
                 scaleMargins: { top: 0.8, bottom: 0 },
             });
 
-            // Resize on window resize
-            new ResizeObserver(() => {
-                chart.applyOptions({ width: container.clientWidth });
-            }).observe(container);
-        }
+            const chart = this.state.chart;
+            this.state.chartResizeObserver = new ResizeObserver(function() {
+                if (chart) chart.applyOptions({ width: container.clientWidth });
+            });
+            this.state.chartResizeObserver.observe(container);
+        },
 
-        async function loadChart() {
+        async loadChart() {
+            if (!this.state.candleSeries) return; // Safety: chart not ready
+
             const symbol = document.getElementById('chart-symbol').value;
-            const days = currentTF === '1d' ? 180 : currentTF === '4h' ? 90 : 30;
+            const days = this.CONFIG.CHART_LOOKBACK[this.state.currentTF] || 30;
 
             try {
-                const data = await fetch(
-                    `${API_BASE}/api/dashboard/chart?symbol=${symbol}&timeframe=${currentTF}&days=${days}`
-                ).then(r => r.json());
+                const data = await this.api(
+                    this.CONFIG.API_BASE + '/api/dashboard/chart?symbol=' + symbol +
+                    '&timeframe=' + this.state.currentTF + '&days=' + days
+                );
 
                 const candles = data.candles || [];
                 if (candles.length === 0) {
@@ -1211,90 +1531,113 @@
                     return;
                 }
 
-                candleSeries.setData(candles.map(c => ({
-                    time: c.time,
-                    open: c.open,
-                    high: c.high,
-                    low: c.low,
-                    close: c.close,
-                })));
+                this.state.candleSeries.setData(candles.map(function(c) {
+                    return { time: c.time, open: c.open, high: c.high, low: c.low, close: c.close };
+                }));
 
-                volumeSeries.setData(candles.map(c => ({
-                    time: c.time,
-                    value: c.volume,
-                    color: c.close >= c.open ? 'rgba(63,185,80,0.3)' : 'rgba(248,81,73,0.3)',
-                })));
+                this.state.volumeSeries.setData(candles.map(function(c) {
+                    return {
+                        time: c.time,
+                        value: c.volume,
+                        color: c.close >= c.open ? 'rgba(63,185,80,0.3)' : 'rgba(248,81,73,0.3)',
+                    };
+                }));
 
-                chart.timeScale().fitContent();
+                this.state.chart.timeScale().fitContent();
                 document.getElementById('chart-info').textContent =
-                    `${data.count} candles · ${symbol} ${currentTF}`;
+                    data.count + ' candles · ' + symbol + ' ' + this.state.currentTF;
             } catch (err) {
                 document.getElementById('chart-info').textContent = 'Chart load failed';
             }
-        }
+        },
 
-        function setTimeframe(tf, btn) {
-            currentTF = tf;
-            document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+        setTimeframe(tf, btn) {
+            this.state.currentTF = tf;
+            document.querySelectorAll('.tf-btn').forEach(function(b) {
+                b.classList.remove('active');
+                b.setAttribute('aria-pressed', 'false');
+            });
             btn.classList.add('active');
-            loadChart();
-        }
+            btn.setAttribute('aria-pressed', 'true');
+            this.loadChart();
+        },
 
-        document.getElementById('chart-symbol').addEventListener('change', loadChart);
-
-        async function fetchMarketStatus() {
+        // ============================================================
+        // Market Sessions (XSS-safe)
+        // ============================================================
+        async fetchMarketStatus() {
             try {
-                const data = await fetch(`${API_BASE}/api/dashboard/market-status`).then(r => r.json());
+                const data = await this.api(`${this.CONFIG.API_BASE}/api/dashboard/market-status`);
                 const grid = document.getElementById('session-grid');
-
                 const labels = { asx: 'ASX', us: 'US Stocks', crypto: 'Crypto' };
                 const brokers = { asx: 'Signals Only', us: 'Alpaca', crypto: 'Swyftx' };
 
-                let html = '';
+                const frag = document.createDocumentFragment();
                 for (const m of (data.markets || [])) {
-                    const badge = m.is_open
-                        ? '<span class="session-badge open">OPEN</span>'
-                        : '<span class="session-badge closed">CLOSED</span>';
+                    const card = document.createElement('div');
+                    card.className = 'session-card';
 
-                    let detail = m.local_time;
+                    const market = document.createElement('div');
+                    market.className = 'session-market';
+                    market.textContent = labels[m.market] || m.market;
+
+                    const badge = document.createElement('div');
+                    badge.className = m.is_open ? 'session-badge open' : 'session-badge closed';
+                    badge.textContent = m.is_open ? 'OPEN' : 'CLOSED';
+
+                    const detail = document.createElement('div');
+                    detail.className = 'session-detail';
+                    let detailText = m.local_time || '';
                     if (m.closes_in_minutes) {
                         const h = Math.floor(m.closes_in_minutes / 60);
                         const mins = m.closes_in_minutes % 60;
-                        detail += ` · closes in ${h}h ${mins}m`;
+                        detailText += ' · closes in ' + h + 'h ' + mins + 'm';
                     } else if (m.opens_in_minutes) {
                         const h = Math.floor(m.opens_in_minutes / 60);
                         const mins = m.opens_in_minutes % 60;
-                        detail += ` · opens in ${h}h ${mins}m`;
+                        detailText += ' · opens in ' + h + 'h ' + mins + 'm';
                     }
+                    detail.textContent = detailText;
 
-                    html += `
-                        <div class="session-card">
-                            <div class="session-market">${labels[m.market] || m.market}</div>
-                            ${badge}
-                            <div class="session-detail">${detail}</div>
-                            <div class="session-detail">${brokers[m.market] || ''}</div>
-                        </div>
-                    `;
+                    const broker = document.createElement('div');
+                    broker.className = 'session-detail';
+                    broker.textContent = brokers[m.market] || '';
+
+                    card.appendChild(market);
+                    card.appendChild(badge);
+                    card.appendChild(detail);
+                    card.appendChild(broker);
+                    frag.appendChild(card);
                 }
-                grid.innerHTML = html;
+                grid.innerHTML = '';
+                grid.appendChild(frag);
             } catch (err) {
-                addLog('warn', `Market status fetch failed: ${err.message}`);
+                this.addLog('warn', 'Market status fetch failed: ' + err.message);
             }
-        }
+        },
 
-        async function fetchDataQuality() {
+        // ============================================================
+        // Data Quality (XSS-safe)
+        // ============================================================
+        async fetchDataQuality() {
             try {
-                const data = await fetch(`${API_BASE}/api/dashboard/data-quality`).then(r => r.json());
+                const data = await this.api(`${this.CONFIG.API_BASE}/api/dashboard/data-quality`);
                 const grid = document.getElementById('health-grid');
                 const summary = document.getElementById('health-summary');
                 const status = document.getElementById('dq-status');
 
                 if (data.error) {
-                    grid.innerHTML = `<div class="health-item"><span class="health-label">Error: ${data.error}</span></div>`;
+                    grid.innerHTML = '';
+                    const item = document.createElement('div');
+                    item.className = 'health-item';
+                    const lbl = document.createElement('span');
+                    lbl.className = 'health-label';
+                    lbl.textContent = 'Error: ' + data.error;
+                    item.appendChild(lbl);
+                    grid.appendChild(item);
                     return;
                 }
 
-                // Summary line
                 const issues = data.total_issues || 0;
                 const errors = data.errors || 0;
                 const warnings = data.warnings || 0;
@@ -1304,187 +1647,427 @@
                 if (errors > 0) summaryClass = 'error';
                 else if (warnings > 0) summaryClass = 'warn';
 
-                summary.innerHTML = `
-                    <span>${symbols} feeds checked</span>
-                    <span class="health-stat ${summaryClass}">${issues === 0 ? 'All healthy' : `${errors} errors, ${warnings} warnings`}</span>
-                `;
+                summary.innerHTML = '';
+                const countSpan = document.createElement('span');
+                countSpan.textContent = symbols + ' feeds checked';
+                const statSpan = document.createElement('span');
+                statSpan.className = 'health-stat ' + summaryClass;
+                statSpan.textContent = issues === 0 ? 'All healthy' : errors + ' errors, ' + warnings + ' warnings';
+                summary.appendChild(countSpan);
+                summary.appendChild(statSpan);
 
                 const t = new Date(data.checked_at_utc);
                 status.textContent = ' -- checked ' + t.toLocaleTimeString('en-AU', { hour12: false, timeZone: 'Australia/Sydney' }) + ' AEST';
 
-                // Per-symbol items
-                let html = '';
+                const frag = document.createDocumentFragment();
                 for (const s of (data.symbols || [])) {
-                    const staleClass = s.staleness_minutes > 60 ? 'warn' : 'ok';
-                    const missingClass = s.missing_pct > 5 ? 'warn' : 'ok';
                     const issueCount = (s.issues || []).length;
-                    const statusClass = issueCount > 0 ? (s.issues.some(i => i.severity === 'error') ? 'error' : 'warn') : 'ok';
-                    const statusLabel = issueCount > 0 ? `${issueCount} issue${issueCount > 1 ? 's' : ''}` : 'OK';
+                    const statusClass = issueCount > 0 ? (s.issues.some(function(i) { return i.severity === 'error'; }) ? 'error' : 'warn') : 'ok';
+                    const statusLabel = issueCount > 0 ? issueCount + ' issue' + (issueCount > 1 ? 's' : '') : 'OK';
 
-                    html += `
-                        <div class="health-item">
-                            <div class="health-label">
-                                ${s.symbol} <small>${s.timeframe}</small><br>
-                                <small>${s.total_rows.toLocaleString()} rows · ${s.staleness_minutes}m ago</small>
-                            </div>
-                            <span class="health-stat ${statusClass}">${statusLabel}</span>
-                        </div>
-                    `;
+                    const item = document.createElement('div');
+                    item.className = 'health-item';
+
+                    const lbl = document.createElement('div');
+                    lbl.className = 'health-label';
+                    lbl.textContent = s.symbol + ' ' + s.timeframe;
+                    const small = document.createElement('small');
+                    small.textContent = s.total_rows.toLocaleString() + ' rows · ' + s.staleness_minutes + 'm ago';
+                    lbl.appendChild(document.createElement('br'));
+                    lbl.appendChild(small);
+
+                    const stat = document.createElement('span');
+                    stat.className = 'health-stat ' + statusClass;
+                    stat.textContent = statusLabel;
+
+                    item.appendChild(lbl);
+                    item.appendChild(stat);
+                    frag.appendChild(item);
                 }
-                grid.innerHTML = html || '<div class="health-item"><span class="health-label">No data yet — run backfill first</span></div>';
+                grid.innerHTML = '';
+                if (frag.children.length > 0) {
+                    grid.appendChild(frag);
+                } else {
+                    const item = document.createElement('div');
+                    item.className = 'health-item';
+                    const lbl = document.createElement('span');
+                    lbl.className = 'health-label';
+                    lbl.textContent = 'No data yet — run backfill first';
+                    item.appendChild(lbl);
+                    grid.appendChild(item);
+                }
             } catch (err) {
-                addLog('warn', `Data quality fetch failed: ${err.message}`);
+                this.addLog('warn', 'Data quality fetch failed: ' + err.message);
             }
-        }
+        },
 
-        // ---- Auto-Trade ----
-        let autoTradeEnabled = false;
-
-        async function toggleAutoTrade() {
-            const newState = !autoTradeEnabled;
+        // ============================================================
+        // Auto-Trade Toggle
+        // ============================================================
+        async toggleAutoTrade() {
+            const newState = !this.state.autoTradeEnabled;
             const action = newState ? 'ENABLE' : 'DISABLE';
-            if (!confirm(`${action} auto-trading?\n\nThis will ${newState ? 'start' : 'stop'} automated signal evaluation and order placement for 5 recommended symbols.`)) return;
+            if (!confirm(action + ' auto-trading?\n\nThis will ' + (newState ? 'start' : 'stop') + ' automated signal evaluation and order placement for 10 watched symbols.')) return;
 
             try {
-                const resp = await fetch(`${API_BASE}/api/admin/auto-trade`, {
+                const data = await this.api(`${this.CONFIG.API_BASE}/api/admin/auto-trade`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: newState }),
                 });
-                const data = await resp.json();
-                autoTradeEnabled = data.enabled;
-                updateAutoTradeUI();
-                addLog(newState ? 'ok' : 'info', `Auto-trade ${newState ? 'enabled' : 'disabled'}`);
+                this.state.autoTradeEnabled = data.enabled;
+                this.updateAutoTradeUI();
+                this.addLog(newState ? 'ok' : 'info', 'Auto-trade ' + (newState ? 'enabled' : 'disabled'));
             } catch (err) {
-                addLog('warn', `Failed to toggle auto-trade: ${err.message}`);
+                this.addLog('warn', 'Failed to toggle auto-trade: ' + err.message);
             }
-        }
+        },
 
-        function updateAutoTradeUI() {
+        updateAutoTradeUI() {
             const toggle = document.getElementById('auto-toggle');
             const label = document.getElementById('auto-label');
             const status = document.getElementById('symbols-status');
+            const switchEl = document.getElementById('auto-trade-toggle');
 
-            if (autoTradeEnabled) {
+            if (this.state.autoTradeEnabled) {
                 toggle.classList.add('active');
                 label.className = 'auto-label on';
                 label.textContent = 'AUTO';
                 status.textContent = ' -- active';
                 status.style.color = '#3fb950';
+                switchEl.setAttribute('aria-checked', 'true');
             } else {
                 toggle.classList.remove('active');
                 label.className = 'auto-label off';
                 label.textContent = 'AUTO';
                 status.textContent = ' -- off';
-                status.style.color = '#484f58';
+                status.style.color = '#6b7280';
+                switchEl.setAttribute('aria-checked', 'false');
             }
-        }
+        },
 
-        async function fetchAutoTradeStatus() {
+        // ============================================================
+        // Auto-Trade Status & Symbols (XSS-safe, incremental)
+        // ============================================================
+        async fetchAutoTradeStatus() {
             try {
-                const data = await fetch(`${API_BASE}/api/admin/auto-trade`).then(r => r.json());
-                autoTradeEnabled = data.enabled;
-                updateAutoTradeUI();
+                const data = await this.api(`${this.CONFIG.API_BASE}/api/admin/auto-trade`);
+                this.state.autoTradeEnabled = data.enabled;
+                this.updateAutoTradeUI();
+                this.syncNextCheck(data.last_evaluated_at, data.evaluate_interval_seconds);
 
-                const body = document.getElementById('symbols-body');
                 const symbols = data.symbols || [];
 
+                // Incremental: skip if no change
+                const hash = JSON.stringify(symbols);
+                if (hash === this.state.lastSymbolsHash) return;
+                this.state.lastSymbolsHash = hash;
+
+                const body = document.getElementById('symbols-body');
+
                 if (symbols.length === 0) {
-                    body.innerHTML = '<tr><td colspan="5" style="color:#484f58; text-align:center;">No symbols configured</td></tr>';
+                    body.innerHTML = '';
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    td.colSpan = 5;
+                    td.style.cssText = 'color:#6b7280; text-align:center;';
+                    td.textContent = 'No symbols configured';
+                    tr.appendChild(td);
+                    body.appendChild(tr);
                     return;
                 }
 
-                body.innerHTML = symbols.map(s => {
-                    const regimeClass = s.regime || 'unknown';
+                const frag = document.createDocumentFragment();
+                for (const s of symbols) {
+                    const tr = document.createElement('tr');
+
+                    // Symbol + market tag
+                    const tdSym = document.createElement('td');
+                    const symName = document.createElement('span');
+                    symName.className = 'symbol-name';
+                    symName.textContent = s.symbol;
+                    const marketTag = document.createElement('span');
+                    marketTag.className = 'symbol-market-tag ' + (s.market === 'crypto' ? 'crypto' : 'asx');
+                    marketTag.textContent = s.market;
+                    tdSym.appendChild(symName);
+                    tdSym.appendChild(marketTag);
+
+                    // Regime
+                    const tdRegime = document.createElement('td');
+                    const regimeTag = document.createElement('span');
+                    regimeTag.className = 'regime-tag ' + (s.regime || 'unknown');
+                    regimeTag.textContent = s.regime || 'unknown';
+                    tdRegime.appendChild(regimeTag);
+
+                    // Strategy
+                    const tdStrategy = document.createElement('td');
+                    tdStrategy.style.color = '#e1e4e8';
+                    tdStrategy.textContent = s.active_strategy || 'none';
+
+                    // Signal
+                    const tdSignal = document.createElement('td');
                     const signalParts = (s.last_signal || 'hold').split('@');
                     const signalAction = signalParts[0];
-                    const signalClass = signalAction === 'buy' ? 'buy' : signalAction === 'sell' ? 'sell' : 'hold';
-                    const signalPrice = signalParts[1] ? ` @ A$${(parseInt(signalParts[1]) / 100).toFixed(2)}` : '';
-                    const marketClass = s.market === 'crypto' ? 'crypto' : 'asx';
+                    const signalSpan = document.createElement('span');
+                    signalSpan.className = 'symbol-signal ' + (signalAction === 'buy' ? 'buy' : signalAction === 'sell' ? 'sell' : 'hold');
+                    let signalText = signalAction;
+                    if (signalParts[1]) {
+                        signalText += ' @ A$' + (parseInt(signalParts[1]) / 100).toFixed(2);
+                    }
+                    signalSpan.textContent = signalText;
+                    tdSignal.appendChild(signalSpan);
 
-                    return `<tr>
-                        <td>
-                            <span class="symbol-name">${s.symbol}</span>
-                            <span class="symbol-market-tag ${marketClass}">${s.market}</span>
-                        </td>
-                        <td><span class="regime-tag ${regimeClass}">${s.regime}</span></td>
-                        <td style="color:#e1e4e8;">${s.active_strategy}</td>
-                        <td><span class="symbol-signal ${signalClass}">${signalAction}${signalPrice}</span></td>
-                        <td style="color:#484f58;">${s.timeframe}</td>
-                    </tr>`;
-                }).join('');
+                    // Timeframe
+                    const tdTF = document.createElement('td');
+                    tdTF.style.color = '#6b7280';
+                    tdTF.textContent = s.timeframe;
+
+                    tr.appendChild(tdSym);
+                    tr.appendChild(tdRegime);
+                    tr.appendChild(tdStrategy);
+                    tr.appendChild(tdSignal);
+                    tr.appendChild(tdTF);
+                    frag.appendChild(tr);
+                }
+                body.innerHTML = '';
+                body.appendChild(frag);
             } catch (err) {
-                // Silently fail for auto-trade status
+                this.addLog('warn', 'Symbols fetch failed: ' + err.message);
+                const body = document.getElementById('symbols-body');
+                body.innerHTML = '';
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 5;
+                td.className = 'table-error';
+                td.textContent = 'Failed to load symbols';
+                tr.appendChild(td);
+                body.appendChild(tr);
             }
-        }
+        },
 
-        async function fetchRecentTrades() {
+        // ============================================================
+        // Recent Trades (XSS-safe)
+        // ============================================================
+        async fetchRecentTrades() {
             try {
-                const data = await fetch(`${API_BASE}/api/trades/`).then(r => r.json());
+                const data = await this.api(`${this.CONFIG.API_BASE}/api/trades/`);
                 const log = document.getElementById('signal-log');
                 const trades = (data.trades || []).slice(0, 10);
 
                 if (trades.length === 0) {
-                    log.innerHTML = '<div class="signal-entry"><span class="signal-reason" style="color:#484f58;">No trades yet</span></div>';
+                    log.innerHTML = '';
+                    const entry = document.createElement('div');
+                    entry.className = 'signal-entry';
+                    const reason = document.createElement('span');
+                    reason.className = 'signal-reason';
+                    reason.style.color = '#6b7280';
+                    reason.textContent = 'No trades yet';
+                    entry.appendChild(reason);
+                    log.appendChild(entry);
                     return;
                 }
 
-                log.innerHTML = trades.map(t => {
-                    const time = t.created_at ? new Date(t.created_at).toLocaleTimeString('en-AU', { hour12: false, timeZone: 'Australia/Sydney' }) : '--';
-                    const actionClass = t.side === 'buy' ? 'buy' : 'sell';
-                    const price = t.price_cents ? `A$${(t.price_cents / 100).toFixed(2)}` : '';
-                    const reason = t.reason || t.strategy || '';
-                    return `
-                        <div class="signal-entry">
-                            <span class="signal-time">${time}</span>
-                            <span class="signal-action ${actionClass}">${t.side}</span>
-                            <span class="signal-sym">${t.symbol}</span>
-                            <span style="color:#e1e4e8; min-width:80px;">${price}</span>
-                            <span class="signal-reason">${reason}</span>
-                            <span style="font-size:11px; color:${t.status === 'filled' ? '#3fb950' : '#f85149'};">${t.status}</span>
-                        </div>
-                    `;
-                }).join('');
-            } catch (err) {
-                // Silently fail
-            }
-        }
+                const frag = document.createDocumentFragment();
+                for (const t of trades) {
+                    const entry = document.createElement('div');
+                    entry.className = 'signal-entry';
 
-        // ---- Next check countdown ----
-        let nextCheckSeconds = 300; // 5 minutes
-        function updateNextCheck() {
+                    const timeSpan = document.createElement('span');
+                    timeSpan.className = 'signal-time';
+                    timeSpan.textContent = t.created_at ? new Date(t.created_at).toLocaleTimeString('en-AU', { hour12: false, timeZone: 'Australia/Sydney' }) : '--';
+
+                    const actionSpan = document.createElement('span');
+                    actionSpan.className = 'signal-action ' + (t.side === 'buy' ? 'buy' : 'sell');
+                    actionSpan.textContent = t.side;
+
+                    const symSpan = document.createElement('span');
+                    symSpan.className = 'signal-sym';
+                    symSpan.textContent = t.symbol;
+
+                    const priceSpan = document.createElement('span');
+                    priceSpan.style.cssText = 'color:#e1e4e8; min-width:80px;';
+                    priceSpan.textContent = t.price_cents ? 'A$' + (t.price_cents / 100).toFixed(2) : '';
+
+                    const reasonSpan = document.createElement('span');
+                    reasonSpan.className = 'signal-reason';
+                    reasonSpan.textContent = t.reason || t.strategy || '';
+
+                    const statusSpan = document.createElement('span');
+                    statusSpan.style.cssText = 'font-size:11px; color:' + (t.status === 'filled' ? '#3fb950' : '#f85149') + ';';
+                    statusSpan.textContent = t.status;
+
+                    entry.appendChild(timeSpan);
+                    entry.appendChild(actionSpan);
+                    entry.appendChild(symSpan);
+                    entry.appendChild(priceSpan);
+                    entry.appendChild(reasonSpan);
+                    entry.appendChild(statusSpan);
+                    frag.appendChild(entry);
+                }
+                log.innerHTML = '';
+                log.appendChild(frag);
+            } catch (err) {
+                // Show error in trade log
+                const log = document.getElementById('signal-log');
+                log.innerHTML = '';
+                const entry = document.createElement('div');
+                entry.className = 'signal-entry';
+                const reason = document.createElement('span');
+                reason.className = 'signal-reason';
+                reason.style.color = '#f85149';
+                reason.textContent = 'Failed to load trades';
+                entry.appendChild(reason);
+                log.appendChild(entry);
+            }
+        },
+
+        // ============================================================
+        // Next Check Countdown (synced with server)
+        // ============================================================
+        syncNextCheck(lastEvaluatedAt, intervalSeconds) {
+            this.CONFIG.EVALUATE_INTERVAL = intervalSeconds || 300;
+            if (!lastEvaluatedAt) {
+                this.state.nextCheckSeconds = -1;
+                return;
+            }
+            const lastTime = new Date(lastEvaluatedAt).getTime();
+            const now = Date.now();
+            const elapsed = Math.floor((now - lastTime) / 1000);
+            this.state.nextCheckSeconds = Math.max(0, this.CONFIG.EVALUATE_INTERVAL - elapsed);
+        },
+
+        updateNextCheck() {
             const el = document.getElementById('next-check');
             if (!el) return;
-            const m = Math.floor(nextCheckSeconds / 60);
-            const s = nextCheckSeconds % 60;
-            el.textContent = `Next check: ${m}:${s.toString().padStart(2, '0')}`;
-            nextCheckSeconds--;
-            if (nextCheckSeconds < 0) nextCheckSeconds = 300;
-        }
-        setInterval(updateNextCheck, 1000);
-        updateNextCheck();
 
-        // Initial fetch
-        document.getElementById('log-entries').innerHTML = '';
-        addLog('info', 'FlashTrade dashboard loaded');
-        initChart();
-        loadChart();
-        fetchStatus();
-        fetchPrices();
-        fetchPositions();
-        fetchAutoTradeStatus();
-        fetchRecentTrades();
-        fetchMarketStatus();
-        fetchDataQuality();
+            if (!this.state.autoTradeEnabled) {
+                el.textContent = 'Auto-trade off';
+                return;
+            }
 
-        // Poll intervals
-        setInterval(fetchStatus, 30000);
-        setInterval(fetchPrices, 30000);
-        setInterval(fetchPositions, 15000);
-        setInterval(fetchAutoTradeStatus, 15000);
-        setInterval(fetchRecentTrades, 15000);
-        setInterval(fetchMarketStatus, 60000);
-        setInterval(fetchDataQuality, 300000); // every 5 min
+            if (this.state.nextCheckSeconds < 0) {
+                el.textContent = 'Next check: waiting...';
+                return;
+            }
+            const m = Math.floor(this.state.nextCheckSeconds / 60);
+            const s = this.state.nextCheckSeconds % 60;
+            el.textContent = 'Next check: ' + m + ':' + s.toString().padStart(2, '0');
+            this.state.nextCheckSeconds--;
+            if (this.state.nextCheckSeconds < 0) {
+                this.state.nextCheckSeconds = this.CONFIG.EVALUATE_INTERVAL;
+            }
+        },
+
+        // ============================================================
+        // Keyboard Shortcuts
+        // ============================================================
+        handleKeydown(e) {
+            // Don't trigger shortcuts when typing in inputs
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (e.key === 'k' || e.key === 'K') {
+                e.preventDefault();
+                FT.killSwitch();
+            }
+        },
+
+        // ============================================================
+        // Consolidated Polling
+        // ============================================================
+        startPolling() {
+            const self = this;
+
+            // Fast: 15s — positions, symbols, trades
+            this.state.pollIntervals.push(setInterval(function() {
+                self.fetchPositions();
+                self.fetchAutoTradeStatus();
+                self.fetchRecentTrades();
+            }, this.CONFIG.POLL_FAST_MS));
+
+            // Medium: 30s — status, prices
+            this.state.pollIntervals.push(setInterval(function() {
+                self.fetchStatus();
+                self.fetchPrices();
+            }, this.CONFIG.POLL_MEDIUM_MS));
+
+            // Slow: 60s — market sessions
+            this.state.pollIntervals.push(setInterval(function() {
+                self.fetchMarketStatus();
+            }, this.CONFIG.POLL_SLOW_MS));
+
+            // Very slow: 5min — data quality
+            this.state.pollIntervals.push(setInterval(function() {
+                self.fetchDataQuality();
+            }, this.CONFIG.POLL_DQ_MS));
+
+            // Countdown: 1s
+            this.state.pollIntervals.push(setInterval(function() {
+                self.updateNextCheck();
+            }, 1000));
+        },
+
+        stopPolling() {
+            this.state.pollIntervals.forEach(function(id) { clearInterval(id); });
+            this.state.pollIntervals = [];
+        },
+
+        // ============================================================
+        // Init
+        // ============================================================
+        init() {
+            const self = this;
+
+            // Clear placeholder log
+            document.getElementById('log-entries').innerHTML = '';
+            this.addLog('info', 'FlashTrade dashboard loaded');
+
+            // Event listeners (not inline onclick — cleaner & testable)
+            document.getElementById('auto-trade-toggle').addEventListener('click', function() { self.toggleAutoTrade(); });
+            document.getElementById('auto-trade-toggle').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); self.toggleAutoTrade(); }
+            });
+            document.getElementById('kill-btn').addEventListener('click', function() { self.killSwitch(); });
+            document.getElementById('btn-buy').addEventListener('click', function() { self.placeTrade('buy'); });
+            document.getElementById('btn-sell').addEventListener('click', function() { self.placeTrade('sell'); });
+            document.getElementById('chart-symbol').addEventListener('change', function() { self.loadChart(); });
+            document.getElementById('trade-amount').addEventListener('input', function() { self.validateTradeForm(); });
+            document.getElementById('trade-sl-pct').addEventListener('input', function() { self.validateTradeForm(); });
+
+            // Timeframe buttons
+            document.querySelectorAll('.tf-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() { self.setTimeframe(btn.dataset.tf, btn); });
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', this.handleKeydown);
+
+            // Cleanup on unload
+            window.addEventListener('beforeunload', function() {
+                self.stopPolling();
+                if (self.state.chartResizeObserver) {
+                    self.state.chartResizeObserver.disconnect();
+                }
+            });
+
+            // Initial data fetch
+            this.initChart();
+            this.loadChart();
+            this.fetchStatus();
+            this.fetchPrices();
+            this.fetchPositions();
+            this.fetchAutoTradeStatus();
+            this.fetchRecentTrades();
+            this.fetchMarketStatus();
+            this.fetchDataQuality();
+            this.updateNextCheck();
+
+            // Start polling
+            this.startPolling();
+        },
+    };
+
+    // Boot
+    FT.init();
     </script>
 </body>
 </html>

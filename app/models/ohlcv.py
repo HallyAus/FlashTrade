@@ -27,4 +27,5 @@ class OHLCV(Base):
     __table_args__ = (
         Index("ix_ohlcv_symbol_tf_ts", "symbol", "timeframe", "timestamp", unique=True),
         Index("ix_ohlcv_market", "market"),
+        Index("ix_ohlcv_symbol_market_tf", "symbol", "market", "timeframe"),
     )

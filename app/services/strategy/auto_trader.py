@@ -54,8 +54,17 @@ class AutoTrader:
 
     async def _get_redis(self) -> aioredis.Redis:
         if self._redis is None:
-            self._redis = aioredis.from_url(settings.redis_url, decode_responses=True)
+            self._redis = aioredis.from_url(
+                settings.redis_url, decode_responses=True,
+                max_connections=5,
+            )
         return self._redis
+
+    async def close(self) -> None:
+        """Close Redis connection pool."""
+        if self._redis is not None:
+            await self._redis.aclose()
+            self._redis = None
 
     async def is_enabled(self) -> bool:
         """Check if auto-trading is enabled."""
@@ -103,10 +112,14 @@ class AutoTrader:
                 "last_signal": last_signal or "hold",
             })
 
+        last_evaluated = await r.get("flashtrade:last_evaluated_at")
+
         return {
             "enabled": enabled,
             "symbols": symbols_status,
             "portfolio_value_cents": self._portfolio_value_cents,
+            "last_evaluated_at": last_evaluated,
+            "evaluate_interval_seconds": 300,
         }
 
     def _strategy_for_regime(self, regime: str | None) -> MomentumStrategy | MeanReversionStrategy:

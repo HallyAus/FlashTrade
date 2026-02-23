@@ -7,7 +7,7 @@ so strategies can be validated before risking capital.
 import logging
 from datetime import datetime, timezone
 
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session
@@ -123,19 +123,24 @@ class PaperExecutor:
     async def _open_or_add_position(
         self, session: AsyncSession, order: Order, trade_id: int, now: datetime
     ) -> None:
-        """Open a new position or add to an existing one."""
+        """Open a new position or add to an existing one.
+
+        Uses SELECT FOR UPDATE to prevent race conditions from concurrent workers.
+        """
         existing = await session.execute(
-            select(Position).where(Position.symbol == order.symbol)
+            select(Position)
+            .where(Position.symbol == order.symbol)
+            .with_for_update()
         )
         pos = existing.scalar_one_or_none()
 
         if pos:
-            # Average into existing position
-            total_cost = (pos.entry_price_cents * pos.quantity) + (
-                order.price_cents * order.quantity_cents
-            )
-            pos.quantity += order.quantity_cents
-            pos.entry_price_cents = total_cost // pos.quantity
+            # Average into existing position (weighted average entry price)
+            old_cost = pos.entry_price_cents * pos.quantity
+            new_cost = order.price_cents * order.quantity_cents
+            new_total_qty = pos.quantity + order.quantity_cents
+            pos.entry_price_cents = int((old_cost + new_cost) / new_total_qty) if new_total_qty > 0 else order.price_cents
+            pos.quantity = new_total_qty
             pos.current_price_cents = order.price_cents
             pos.stop_loss_cents = order.stop_loss_cents
             pos.updated_at = now
@@ -161,7 +166,9 @@ class PaperExecutor:
     ) -> int | None:
         """Close a position and calculate realized P&L. Returns pnl_cents or None."""
         existing = await session.execute(
-            select(Position).where(Position.symbol == order.symbol)
+            select(Position)
+            .where(Position.symbol == order.symbol)
+            .with_for_update()
         )
         pos = existing.scalar_one_or_none()
 
@@ -169,8 +176,11 @@ class PaperExecutor:
             logger.warning("No position to close for %s", order.symbol)
             return None
 
-        # Calculate P&L
-        pnl_cents = (order.price_cents - pos.entry_price_cents) * pos.quantity // order.quantity_cents
+        # Calculate P&L: quantity * (sell_price - entry_price) / entry_price
+        if pos.entry_price_cents > 0:
+            pnl_cents = int(pos.quantity * (order.price_cents - pos.entry_price_cents) / pos.entry_price_cents)
+        else:
+            pnl_cents = 0
 
         # Remove position
         await session.execute(
@@ -255,8 +265,11 @@ class PaperExecutor:
             if not pos:
                 return {"status": "no_position", "symbol": symbol}
 
-            # Calculate P&L
-            pnl_cents = (current_price_cents - pos.entry_price_cents) * pos.quantity // current_price_cents
+            # Calculate P&L: quantity * (sell_price - entry_price) / entry_price
+            if pos.entry_price_cents > 0:
+                pnl_cents = int(pos.quantity * (current_price_cents - pos.entry_price_cents) / pos.entry_price_cents)
+            else:
+                pnl_cents = 0
             self._risk_manager.record_trade_result(pnl_cents)
 
             trade = Trade(

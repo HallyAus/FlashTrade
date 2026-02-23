@@ -1,11 +1,15 @@
 """Admin API routes — kill switch, auto-trade control, system status."""
 
-from fastapi import APIRouter
+import logging
+
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from app.api.auth import require_api_key
 from app.services.risk_manager import RiskManager
 from app.services.strategy.auto_trader import AutoTrader
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 risk_manager = RiskManager()
@@ -18,7 +22,7 @@ class AutoTradeRequest(BaseModel):
     enabled: bool
 
 
-@router.post("/kill-switch")
+@router.post("/kill-switch", dependencies=[Depends(require_api_key)])
 async def activate_kill_switch():
     """Emergency: halt all trading and close all positions."""
     risk_manager.kill_switch()
@@ -26,7 +30,7 @@ async def activate_kill_switch():
     return {"status": "killed", "message": "All trading halted. Auto-trade disabled."}
 
 
-@router.post("/resume")
+@router.post("/resume", dependencies=[Depends(require_api_key)])
 async def resume_trading():
     """Resume trading after kill switch (use with caution)."""
     risk_manager.reset_halt()
@@ -38,7 +42,8 @@ async def system_status():
     """Get current system status including auto-trade state."""
     try:
         auto_status = await _auto_trader.get_status()
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to get auto-trade status: %s", e)
         auto_status = {"enabled": False, "symbols": [], "error": "Redis/DB unavailable"}
     return {
         "halted": risk_manager.is_halted,
@@ -48,7 +53,7 @@ async def system_status():
     }
 
 
-@router.post("/auto-trade")
+@router.post("/auto-trade", dependencies=[Depends(require_api_key)])
 async def toggle_auto_trade(req: AutoTradeRequest):
     """Enable or disable auto-trading."""
     await _auto_trader.set_enabled(req.enabled)

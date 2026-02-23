@@ -1,15 +1,38 @@
 """Risk manager — ALL trades must pass through here before execution.
 
 This is the most critical module. No trade reaches a broker without approval.
+Circuit breaker state is persisted to Redis so restarts don't clear halt status.
 """
 
+import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
+import redis
+
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Sync Redis client for RiskManager (called from sync context in Celery)
+_redis_sync: redis.Redis | None = None
+
+
+def _get_redis_sync() -> redis.Redis | None:
+    """Get a sync Redis connection for persisting circuit breaker state."""
+    global _redis_sync
+    if _redis_sync is None:
+        try:
+            _redis_sync = redis.from_url(settings.redis_url, decode_responses=True)
+            _redis_sync.ping()
+        except Exception as e:
+            logger.warning("Redis unavailable for risk manager persistence: %s", e)
+            _redis_sync = None
+    return _redis_sync
+
+
+REDIS_KEY_RISK_STATE = "flashtrade:risk_state"
 
 
 @dataclass
@@ -54,6 +77,7 @@ class RiskManager:
         self._paused_until: datetime | None = None
         self._daily_pnl_cents: int = 0
         self._portfolio_value_cents: int = 1_000_000  # $10,000 default
+        self._load_state()
 
     @property
     def is_halted(self) -> bool:
@@ -167,11 +191,14 @@ class RiskManager:
         else:
             self._consecutive_losses = 0
 
+        self._save_state()
+
     def kill_switch(self) -> None:
         """Emergency halt — stops all trading immediately."""
         self._halted = True
         self._halt_reason = "Kill switch activated manually"
         logger.critical("KILL SWITCH ACTIVATED — all trading halted")
+        self._save_state()
 
     def reset_halt(self) -> None:
         """Reset halt state (use with caution)."""
@@ -179,11 +206,51 @@ class RiskManager:
         self._halt_reason = ""
         self._consecutive_losses = 0
         logger.info("Trading halt reset")
+        self._save_state()
 
     def reset_daily_pnl(self) -> None:
         """Reset daily P&L counter (call at start of each trading day)."""
         self._daily_pnl_cents = 0
+        self._save_state()
 
     def set_portfolio_value(self, value_cents: int) -> None:
         """Update portfolio value for risk calculations."""
         self._portfolio_value_cents = value_cents
+
+    def _save_state(self) -> None:
+        """Persist circuit breaker state to Redis."""
+        r = _get_redis_sync()
+        if r is None:
+            return
+        try:
+            state = {
+                "halted": self._halted,
+                "halt_reason": self._halt_reason,
+                "consecutive_losses": self._consecutive_losses,
+                "daily_pnl_cents": self._daily_pnl_cents,
+                "paused_until": self._paused_until.isoformat() if self._paused_until else None,
+            }
+            r.set(REDIS_KEY_RISK_STATE, json.dumps(state), ex=86400)
+        except Exception as e:
+            logger.warning("Failed to save risk state to Redis: %s", e)
+
+    def _load_state(self) -> None:
+        """Load circuit breaker state from Redis on startup."""
+        r = _get_redis_sync()
+        if r is None:
+            return
+        try:
+            raw = r.get(REDIS_KEY_RISK_STATE)
+            if not raw:
+                return
+            state = json.loads(raw)
+            self._halted = state.get("halted", False)
+            self._halt_reason = state.get("halt_reason", "")
+            self._consecutive_losses = state.get("consecutive_losses", 0)
+            self._daily_pnl_cents = state.get("daily_pnl_cents", 0)
+            paused = state.get("paused_until")
+            if paused:
+                self._paused_until = datetime.fromisoformat(paused)
+            logger.info("Risk state loaded from Redis: halted=%s, losses=%d", self._halted, self._consecutive_losses)
+        except Exception as e:
+            logger.warning("Failed to load risk state from Redis: %s", e)
