@@ -64,7 +64,37 @@ class PaperExecutor:
                     "reason": verdict.reason,
                 }
 
-        # Step 2: Execute (instant fill for paper trading)
+        # Step 2: For sells, verify we actually hold the position first
+        if order.side == "sell":
+            async with async_session() as session:
+                existing = await session.execute(
+                    select(Position).where(Position.symbol == order.symbol)
+                )
+                if existing.scalar_one_or_none() is None:
+                    logger.warning("Sell rejected: no open position for %s", order.symbol)
+                    trade = Trade(
+                        symbol=order.symbol,
+                        market=order.market,
+                        side=order.side,
+                        order_type=order.order_type,
+                        quantity_cents=order.quantity_cents,
+                        price_cents=order.price_cents,
+                        stop_loss_cents=order.stop_loss_cents,
+                        status="rejected",
+                        strategy=order.strategy,
+                        reason="No open position to sell",
+                        created_at=datetime.now(timezone.utc),
+                    )
+                    session.add(trade)
+                    await session.commit()
+                    await session.refresh(trade)
+                    return {
+                        "status": "rejected",
+                        "trade_id": trade.id,
+                        "reason": "No open position to sell",
+                    }
+
+        # Step 3: Execute (instant fill for paper trading)
         async with async_session() as session:
             now = datetime.now(timezone.utc)
 
@@ -87,7 +117,7 @@ class PaperExecutor:
             session.add(trade)
             await session.flush()
 
-            # Step 3: Update positions
+            # Step 4: Update positions
             if order.side == "buy":
                 await self._open_or_add_position(session, order, trade.id, now)
             elif order.side == "sell":

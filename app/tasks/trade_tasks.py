@@ -69,6 +69,10 @@ async def _evaluate_signals_async() -> dict:
     orders_placed = 0
     results = []
 
+    # Load open positions so we only sell what we actually hold
+    open_positions = await executor.get_positions()
+    held_symbols = {p["symbol"] for p in open_positions}
+
     for sym in WATCHED_SYMBOLS:
         try:
             signal = await trader.evaluate_symbol(
@@ -76,6 +80,12 @@ async def _evaluate_signals_async() -> dict:
             )
             if signal is None:
                 results.append({"symbol": sym["symbol"], "action": "hold"})
+                continue
+
+            # Skip sell signals for symbols we don't hold
+            if signal.action == "sell" and signal.symbol not in held_symbols:
+                logger.info("Skipping sell signal for %s — no open position", signal.symbol)
+                results.append({"symbol": sym["symbol"], "action": "sell_skipped", "reason": "no position"})
                 continue
 
             signals_generated += 1
