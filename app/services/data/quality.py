@@ -60,14 +60,23 @@ class DataQualityReport:
     warnings: int = 0
 
 
-# Thresholds
-STALE_THRESHOLD_MINUTES = {
-    "crypto": 10,    # Crypto should have data within 10 min
-    "asx": 60,       # Stocks within 60 min during market hours
-    "us": 60,
+# Staleness thresholds: (market, timeframe) -> minutes
+# Only flag as stale if data is older than this AND market is open
+STALE_THRESHOLDS = {
+    # Crypto hourly: allow 2 hours (Celery runs every 1 min, but exchange lag + gaps)
+    ("crypto", "1h"): 120,
+    ("crypto", "1d"): 1500,   # Daily candle: ~25 hours is fine
+    ("crypto", "1m"): 5,
+    # Stocks: only checked during market hours anyway
+    ("asx", "1h"): 120,
+    ("asx", "1d"): 1500,
+    ("us", "1h"): 120,
+    ("us", "1d"): 1500,
 }
-OUTLIER_STD_DEVS = 3.0  # Flag moves > 3 standard deviations
-MAX_MISSING_PCT = 5.0   # Flag if >5% candles missing
+STALE_DEFAULT_MINUTES = 120  # Fallback
+
+OUTLIER_STD_DEVS = 4.0  # Flag moves > 4 standard deviations (3 was too noisy)
+MAX_MISSING_PCT = 10.0  # Flag if >10% candles missing (5% too strict with holidays)
 
 
 async def run_quality_checks(
@@ -170,7 +179,7 @@ async def _check_symbol(
         sr.latest_candle_utc = latest_ts.isoformat()
         sr.staleness_minutes = int((now_utc - latest_ts).total_seconds() / 60)
 
-        threshold = STALE_THRESHOLD_MINUTES.get(market, 60)
+        threshold = STALE_THRESHOLDS.get((market, timeframe), STALE_DEFAULT_MINUTES)
         # Only flag staleness if market is open
         try:
             mkt = Market(market)
