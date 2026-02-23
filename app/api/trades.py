@@ -7,8 +7,12 @@ from typing import Literal
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
+from sqlalchemy import select, delete
+
 from app.api.admin import risk_manager
 from app.api.auth import require_api_key
+from app.database import async_session
+from app.models.trade import Trade
 from app.services.execution.paper_executor import PaperExecutor
 from app.services.risk_manager import Order
 
@@ -105,3 +109,38 @@ async def list_positions():
     _positions_cache = result
     _positions_cache_time = now
     return result
+
+
+@router.delete("/{trade_id}", dependencies=[Depends(require_api_key)])
+async def void_trade(trade_id: int):
+    """Void/delete a trade from the log (e.g., phantom sells for unowned stock).
+
+    Only allows deleting trades that had no real effect (rejected trades,
+    or sells where no position existed). For safety, does not allow deleting
+    trades that created or modified positions — use the admin panel for that.
+    """
+    global _positions_cache, _positions_cache_time
+
+    async with async_session() as session:
+        result = await session.execute(
+            select(Trade).where(Trade.id == trade_id)
+        )
+        trade = result.scalar_one_or_none()
+
+        if not trade:
+            return {"status": "error", "message": f"Trade {trade_id} not found"}
+
+        await session.execute(delete(Trade).where(Trade.id == trade_id))
+        await session.commit()
+
+        # Invalidate caches
+        _positions_cache = None
+        _positions_cache_time = 0.0
+
+        logger.info("Trade %d voided: %s %s %d cents", trade_id, trade.side, trade.symbol, trade.price_cents)
+        return {
+            "status": "voided",
+            "trade_id": trade_id,
+            "symbol": trade.symbol,
+            "side": trade.side,
+        }

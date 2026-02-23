@@ -1464,6 +1464,18 @@
             setTimeout(function() { el.className = 'trade-result'; }, 8000);
         },
 
+        async voidTrade(tradeId, symbol) {
+            if (!confirm('Void trade #' + tradeId + ' (' + symbol + ')? This removes it from the log.')) return;
+            try {
+                await this.api(`${this.CONFIG.API_BASE}/api/trades/${tradeId}`, { method: 'DELETE' });
+                this.addLog('info', 'Trade #' + tradeId + ' voided (' + symbol + ')');
+                this.fetchRecentTrades();
+                this.fetchStatus();
+            } catch (err) {
+                this.addLog('warn', 'Failed to void trade: ' + err.message);
+            }
+        },
+
         // ============================================================
         // Positions (incremental DOM updates)
         // ============================================================
@@ -2034,12 +2046,27 @@
                     statusSpan.style.cssText = 'font-size:11px; color:' + (t.status === 'filled' ? '#3fb950' : '#f85149') + ';';
                     statusSpan.textContent = t.status;
 
+                    // Void button — removes phantom/bad trades
+                    var voidBtn = document.createElement('button');
+                    voidBtn.textContent = '\u00d7';
+                    voidBtn.title = 'Void this trade';
+                    voidBtn.style.cssText = 'background:none; border:none; color:#6b7280; cursor:pointer; font-size:14px; padding:0 4px; margin-left:4px;';
+                    voidBtn.dataset.tradeId = t.id;
+                    var self = this;
+                    voidBtn.addEventListener('click', (function(tradeId, symbol) {
+                        return function(e) {
+                            e.stopPropagation();
+                            self.voidTrade(tradeId, symbol);
+                        };
+                    })(t.id, t.symbol));
+
                     entry.appendChild(timeSpan);
                     entry.appendChild(actionSpan);
                     entry.appendChild(symSpan);
                     entry.appendChild(priceSpan);
                     entry.appendChild(reasonSpan);
                     entry.appendChild(statusSpan);
+                    entry.appendChild(voidBtn);
                     frag.appendChild(entry);
                 }
                 log.innerHTML = '';
