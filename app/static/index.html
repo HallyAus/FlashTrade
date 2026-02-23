@@ -346,7 +346,145 @@
             font-size: 13px;
         }
         .health-summary span { color: #8b949e; }
+
+        /* Trade form */
+        .trade-card { grid-column: 1 / -1; }
+
+        .trade-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .trade-form label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8b949e;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .trade-form select, .trade-form input {
+            width: 100%;
+            background: #0d1117;
+            border: 1px solid #21262d;
+            color: #e1e4e8;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .trade-form select:focus, .trade-form input:focus {
+            border-color: #58a6ff;
+            outline: none;
+        }
+
+        .trade-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .btn-buy, .btn-sell {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .btn-buy {
+            background: rgba(46, 160, 67, 0.15);
+            color: #3fb950;
+            border: 1px solid rgba(46, 160, 67, 0.3);
+        }
+        .btn-buy:hover { background: rgba(46, 160, 67, 0.25); }
+
+        .btn-sell {
+            background: rgba(248, 81, 73, 0.15);
+            color: #f85149;
+            border: 1px solid rgba(248, 81, 73, 0.3);
+        }
+        .btn-sell:hover { background: rgba(248, 81, 73, 0.25); }
+
+        .trade-result {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+        }
+        .trade-result.success { display: block; background: rgba(46,160,67,0.1); color: #3fb950; }
+        .trade-result.error { display: block; background: rgba(248,81,73,0.1); color: #f85149; }
+
+        /* Positions table */
+        .positions-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 13px;
+        }
+        .positions-table th {
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8b949e;
+            padding: 8px;
+            border-bottom: 1px solid #21262d;
+        }
+        .positions-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #161b22;
+        }
+        .positions-table .pnl-positive { color: #3fb950; }
+        .positions-table .pnl-negative { color: #f85149; }
+
+        /* Chart */
+        .chart-card { grid-column: 1 / -1; }
+
+        .chart-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .chart-controls select, .chart-controls button {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            color: #e1e4e8;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .chart-controls select:focus { border-color: #58a6ff; outline: none; }
+
+        .tf-btn { transition: background 0.15s; }
+        .tf-btn.active {
+            background: rgba(88, 166, 255, 0.15);
+            border-color: #58a6ff;
+            color: #58a6ff;
+        }
+        .tf-btn:hover { background: #161b22; }
+
+        #chart-container {
+            width: 100%;
+            height: 400px;
+            border-radius: 6px;
+            overflow: hidden;
+        }
     </style>
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
     <div class="container">
@@ -386,6 +524,61 @@
                 <div class="card-sub">Max $100 per position</div>
             </div>
 
+            <div class="card trade-card">
+                <div class="card-header">Trade</div>
+                <div class="trade-form">
+                    <div>
+                        <label>Symbol</label>
+                        <select id="trade-symbol">
+                            <option value="BTC">BTC</option>
+                            <option value="ETH">ETH</option>
+                            <option value="SOL">SOL</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Amount (AUD)</label>
+                        <input type="number" id="trade-amount" value="50" min="10" max="100" step="10">
+                    </div>
+                    <div>
+                        <label>Stop Loss %</label>
+                        <input type="number" id="trade-sl-pct" value="5" min="1" max="20" step="1">
+                    </div>
+                    <div>
+                        <label>Strategy</label>
+                        <select id="trade-strategy">
+                            <option value="manual">Manual</option>
+                            <option value="momentum">Momentum</option>
+                            <option value="meanrev">Mean Reversion</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="trade-actions">
+                    <button class="btn-buy" onclick="placeTrade('buy')">BUY</button>
+                    <button class="btn-sell" onclick="placeTrade('sell')">SELL</button>
+                </div>
+                <div class="trade-result" id="trade-result"></div>
+            </div>
+
+            <div class="card trade-card">
+                <div class="card-header">Open Positions</div>
+                <table class="positions-table" id="positions-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Side</th>
+                            <th>Entry</th>
+                            <th>Current</th>
+                            <th>Stop Loss</th>
+                            <th>Size</th>
+                            <th>P&L</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positions-body">
+                        <tr><td colspan="7" style="color:#484f58; text-align:center;">No open positions</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
             <div class="card prices-card">
                 <div class="card-header">
                     Live Prices
@@ -393,6 +586,28 @@
                 </div>
                 <div class="price-grid" id="price-grid"></div>
                 <div id="price-errors"></div>
+            </div>
+
+            <div class="card chart-card">
+                <div class="card-header">Chart</div>
+                <div class="chart-controls">
+                    <select id="chart-symbol">
+                        <option value="BTC">BTC</option>
+                        <option value="ETH">ETH</option>
+                        <option value="SOL">SOL</option>
+                        <option value="BHP.AX">BHP.AX</option>
+                        <option value="CBA.AX">CBA.AX</option>
+                        <option value="CSL.AX">CSL.AX</option>
+                        <option value="SPY">SPY</option>
+                        <option value="AAPL">AAPL</option>
+                        <option value="NVDA">NVDA</option>
+                    </select>
+                    <button class="tf-btn active" data-tf="1h" onclick="setTimeframe('1h', this)">1H</button>
+                    <button class="tf-btn" data-tf="4h" onclick="setTimeframe('4h', this)">4H</button>
+                    <button class="tf-btn" data-tf="1d" onclick="setTimeframe('1d', this)">1D</button>
+                    <span id="chart-info" style="font-size:11px; color:#484f58; margin-left:auto;"></span>
+                </div>
+                <div id="chart-container"></div>
             </div>
 
             <div class="card markets-card">
@@ -436,7 +651,7 @@
         </div>
 
         <div class="footer">
-            <span>FlashTrade v0.3.0 &mdash; Day 3 of 30</span>
+            <span>FlashTrade v0.5.0 &mdash; Day 5 of 30</span>
             <span>
                 <a href="https://github.com/HallyAus/FlashTrade" target="_blank">GitHub</a>
                 &nbsp;&middot;&nbsp;
@@ -579,6 +794,10 @@
                 const t = new Date(data.fetched_at_utc);
                 status.textContent = ' -- updated ' + t.toLocaleTimeString('en-AU', { hour12: false, timeZone: 'Australia/Sydney' }) + ' AEST';
 
+                // Cache prices for trade form
+                for (const item of (data.crypto || [])) latestPrices[item.symbol] = item.price_cents;
+                for (const item of (data.stocks || [])) latestPrices[item.symbol] = item.price_cents;
+
                 const cc = (data.crypto || []).length;
                 const sc = (data.stocks || []).length;
                 addLog('info', `Prices: ${cc} crypto, ${sc} stocks`);
@@ -587,6 +806,201 @@
                 addLog('warn', `Price fetch failed: ${err.message}`);
             }
         }
+
+        // ---- Trading ----
+        let latestPrices = {};
+
+        async function placeTrade(side) {
+            const symbol = document.getElementById('trade-symbol').value;
+            const amountAud = parseFloat(document.getElementById('trade-amount').value);
+            const slPct = parseFloat(document.getElementById('trade-sl-pct').value);
+            const strategy = document.getElementById('trade-strategy').value;
+
+            // Get current price from cache
+            const priceCents = latestPrices[symbol] || 0;
+            if (!priceCents) {
+                showTradeResult('error', 'No price available for ' + symbol + '. Wait for prices to load.');
+                return;
+            }
+
+            const quantityCents = Math.round(amountAud * 100);
+            const stopLossCents = side === 'buy'
+                ? Math.round(priceCents * (1 - slPct / 100))
+                : Math.round(priceCents * (1 + slPct / 100));
+
+            const conf = `${side.toUpperCase()} ${symbol}\nAmount: A$${amountAud}\nPrice: A$${(priceCents/100).toFixed(2)}\nStop Loss: A$${(stopLossCents/100).toFixed(2)} (${slPct}%)`;
+            if (!confirm(conf)) return;
+
+            try {
+                const resp = await fetch(`${API_BASE}/api/trades/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        market: 'crypto',
+                        side: side,
+                        order_type: 'market',
+                        quantity_cents: quantityCents,
+                        price_cents: priceCents,
+                        stop_loss_cents: stopLossCents,
+                        strategy: strategy,
+                        reason: `Manual ${side} via dashboard`,
+                    }),
+                });
+                const data = await resp.json();
+
+                if (data.status === 'filled') {
+                    showTradeResult('success', `${side.toUpperCase()} ${symbol} filled — Trade #${data.trade_id}`);
+                    addLog('ok', `Trade filled: ${side} ${symbol} A$${amountAud}`);
+                    fetchPositions();
+                    fetchStatus();
+                } else {
+                    showTradeResult('error', `Rejected: ${data.reason}`);
+                    addLog('warn', `Trade rejected: ${data.reason}`);
+                }
+            } catch (err) {
+                showTradeResult('error', `Trade failed: ${err.message}`);
+            }
+        }
+
+        function showTradeResult(type, msg) {
+            const el = document.getElementById('trade-result');
+            el.className = 'trade-result ' + type;
+            el.textContent = msg;
+            setTimeout(() => { el.className = 'trade-result'; }, 8000);
+        }
+
+        async function fetchPositions() {
+            try {
+                const data = await fetch(`${API_BASE}/api/trades/positions`).then(r => r.json());
+                const body = document.getElementById('positions-body');
+                const positions = data.positions || [];
+
+                if (positions.length === 0) {
+                    body.innerHTML = '<tr><td colspan="7" style="color:#484f58; text-align:center;">No open positions</td></tr>';
+                    document.getElementById('positions-count').textContent = '0';
+                    return;
+                }
+
+                document.getElementById('positions-count').textContent = positions.length;
+
+                body.innerHTML = positions.map(p => {
+                    const entry = (p.entry_price_cents / 100).toFixed(2);
+                    const current = (p.current_price_cents / 100).toFixed(2);
+                    const sl = (p.stop_loss_cents / 100).toFixed(2);
+                    const size = (p.quantity / 100).toFixed(2);
+                    const pnl = (p.unrealized_pnl_cents / 100).toFixed(2);
+                    const pnlClass = p.unrealized_pnl_cents >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    const pnlSign = p.unrealized_pnl_cents >= 0 ? '+' : '';
+                    return `<tr>
+                        <td><strong>${p.symbol}</strong></td>
+                        <td>${p.side}</td>
+                        <td>A$${entry}</td>
+                        <td>A$${current}</td>
+                        <td>A$${sl}</td>
+                        <td>A$${size}</td>
+                        <td class="${pnlClass}">${pnlSign}A$${pnl}</td>
+                    </tr>`;
+                }).join('');
+            } catch (err) {
+                // Silently fail — positions table stays as-is
+            }
+        }
+
+        // ---- Chart ----
+        let chart = null;
+        let candleSeries = null;
+        let volumeSeries = null;
+        let currentTF = '1h';
+
+        function initChart() {
+            const container = document.getElementById('chart-container');
+            chart = LightweightCharts.createChart(container, {
+                layout: {
+                    background: { color: '#0d1117' },
+                    textColor: '#8b949e',
+                },
+                grid: {
+                    vertLines: { color: '#1e2836' },
+                    horzLines: { color: '#1e2836' },
+                },
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                rightPriceScale: { borderColor: '#21262d' },
+                timeScale: {
+                    borderColor: '#21262d',
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+            });
+
+            candleSeries = chart.addCandlestickSeries({
+                upColor: '#3fb950',
+                downColor: '#f85149',
+                borderDownColor: '#f85149',
+                borderUpColor: '#3fb950',
+                wickDownColor: '#f85149',
+                wickUpColor: '#3fb950',
+            });
+
+            volumeSeries = chart.addHistogramSeries({
+                priceFormat: { type: 'volume' },
+                priceScaleId: '',
+            });
+            volumeSeries.priceScale().applyOptions({
+                scaleMargins: { top: 0.8, bottom: 0 },
+            });
+
+            // Resize on window resize
+            new ResizeObserver(() => {
+                chart.applyOptions({ width: container.clientWidth });
+            }).observe(container);
+        }
+
+        async function loadChart() {
+            const symbol = document.getElementById('chart-symbol').value;
+            const days = currentTF === '1d' ? 180 : currentTF === '4h' ? 90 : 30;
+
+            try {
+                const data = await fetch(
+                    `${API_BASE}/api/dashboard/chart?symbol=${symbol}&timeframe=${currentTF}&days=${days}`
+                ).then(r => r.json());
+
+                const candles = data.candles || [];
+                if (candles.length === 0) {
+                    document.getElementById('chart-info').textContent = 'No data for this selection';
+                    return;
+                }
+
+                candleSeries.setData(candles.map(c => ({
+                    time: c.time,
+                    open: c.open,
+                    high: c.high,
+                    low: c.low,
+                    close: c.close,
+                })));
+
+                volumeSeries.setData(candles.map(c => ({
+                    time: c.time,
+                    value: c.volume,
+                    color: c.close >= c.open ? 'rgba(63,185,80,0.3)' : 'rgba(248,81,73,0.3)',
+                })));
+
+                chart.timeScale().fitContent();
+                document.getElementById('chart-info').textContent =
+                    `${data.count} candles · ${symbol} ${currentTF}`;
+            } catch (err) {
+                document.getElementById('chart-info').textContent = 'Chart load failed';
+            }
+        }
+
+        function setTimeframe(tf, btn) {
+            currentTF = tf;
+            document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadChart();
+        }
+
+        document.getElementById('chart-symbol').addEventListener('change', loadChart);
 
         async function fetchMarketStatus() {
             try {
@@ -686,14 +1100,18 @@
         // Initial fetch
         document.getElementById('log-entries').innerHTML = '';
         addLog('info', 'FlashTrade dashboard loaded');
+        initChart();
+        loadChart();
         fetchStatus();
         fetchPrices();
+        fetchPositions();
         fetchMarketStatus();
         fetchDataQuality();
 
         // Poll every 30 seconds
         setInterval(fetchStatus, 30000);
         setInterval(fetchPrices, 30000);
+        setInterval(fetchPositions, 15000);
         setInterval(fetchMarketStatus, 60000);
         setInterval(fetchDataQuality, 300000); // every 5 min
     </script>
