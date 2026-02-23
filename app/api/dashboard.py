@@ -36,7 +36,7 @@ async def get_portfolio():
     executor = PaperExecutor(risk_manager)
     positions = await executor.get_positions()
 
-    # Calculate realized P&L from all filled trades
+    # Get all filled trades
     async with async_session() as session:
         from app.models.trade import Trade
         result = await session.execute(
@@ -44,7 +44,7 @@ async def get_portfolio():
         )
         trades = result.scalars().all()
 
-    # Cash = starting cash - money spent on buys + money received from sells
+    # Cash = starting cash - buys + sells
     cash_cents = STARTING_CASH_CENTS
     for t in trades:
         if t.side == "buy":
@@ -52,19 +52,25 @@ async def get_portfolio():
         elif t.side == "sell":
             cash_cents += t.quantity_cents
 
-    # Value of open positions (quantity held at current price)
+    # Portfolio value = total value of open positions (what they're worth now)
     positions_value_cents = sum(p.get("quantity", 0) for p in positions)
-    total_unrealized = sum(p.get("unrealized_pnl_cents", 0) for p in positions)
 
-    portfolio_value_cents = cash_cents + positions_value_cents
+    # Unrealized P&L = current value - cost basis of open positions
+    unrealized_pnl_cents = sum(p.get("unrealized_pnl_cents", 0) for p in positions)
+
+    # Realized P&L = cash change from closed trades (sells - cost of sold positions)
+    # This is: current cash - (starting cash - money still in positions)
+    realized_pnl_cents = cash_cents - (STARTING_CASH_CENTS - positions_value_cents)
 
     return {
-        "portfolio_value_cents": portfolio_value_cents,
         "cash_cents": cash_cents,
         "positions_value_cents": positions_value_cents,
-        "daily_pnl_cents": total_unrealized,
+        "unrealized_pnl_cents": unrealized_pnl_cents,
+        "realized_pnl_cents": realized_pnl_cents,
         "starting_cash_cents": STARTING_CASH_CENTS,
         "positions": positions,
+        "open_positions_count": len(positions),
+        "total_trades": len(trades),
         "status": "paper_trading",
     }
 
