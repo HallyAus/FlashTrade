@@ -25,6 +25,39 @@ class Market(str, Enum):
     CRYPTO = "crypto"
 
 
+# Known market holidays (date only, no time). Add more as needed.
+# These are approximate — doesn't cover every half-day or special close.
+US_HOLIDAYS_2026 = {
+    datetime(2026, 1, 1).date(),   # New Year's Day
+    datetime(2026, 1, 19).date(),  # MLK Day
+    datetime(2026, 2, 16).date(),  # Presidents' Day
+    datetime(2026, 4, 3).date(),   # Good Friday
+    datetime(2026, 5, 25).date(),  # Memorial Day
+    datetime(2026, 6, 19).date(),  # Juneteenth
+    datetime(2026, 7, 3).date(),   # Independence Day (observed)
+    datetime(2026, 9, 7).date(),   # Labor Day
+    datetime(2026, 11, 26).date(), # Thanksgiving
+    datetime(2026, 12, 25).date(), # Christmas
+}
+
+ASX_HOLIDAYS_2026 = {
+    datetime(2026, 1, 1).date(),   # New Year's Day
+    datetime(2026, 1, 26).date(),  # Australia Day
+    datetime(2026, 4, 3).date(),   # Good Friday
+    datetime(2026, 4, 6).date(),   # Easter Monday
+    datetime(2026, 4, 27).date(),  # ANZAC Day (observed)
+    datetime(2026, 6, 8).date(),   # Queen's Birthday
+    datetime(2026, 12, 25).date(), # Christmas
+    datetime(2026, 12, 28).date(), # Boxing Day (observed)
+}
+
+MARKET_HOLIDAYS = {
+    Market.US: US_HOLIDAYS_2026,
+    Market.ASX: ASX_HOLIDAYS_2026,
+    Market.CRYPTO: set(),
+}
+
+
 class MarketSession(NamedTuple):
     """A trading session with open/close times in local timezone."""
 
@@ -83,6 +116,11 @@ def is_market_open(market: Market, at_utc: datetime | None = None) -> bool:
 
     # Check if it's a trading day
     if local_dt.weekday() not in session.trading_days:
+        return False
+
+    # Check holidays
+    holidays = MARKET_HOLIDAYS.get(market, set())
+    if local_dt.date() in holidays:
         return False
 
     # Check if within trading hours
@@ -241,14 +279,21 @@ def expected_candle_count(
         return int(total_minutes / tf_minutes)
 
     session = SESSIONS[market]
+    holidays = MARKET_HOLIDAYS.get(market, set())
+
+    def _is_trading_day(utc_dt: datetime) -> bool:
+        local = utc_dt.astimezone(session.tz)
+        return (
+            local.weekday() in session.trading_days
+            and local.date() not in holidays
+        )
 
     # For daily candles, count trading days
     if timeframe == "1d":
         count = 0
         current = start_utc
         while current <= end_utc:
-            local = current.astimezone(session.tz)
-            if local.weekday() in session.trading_days:
+            if _is_trading_day(current):
                 count += 1
             current += timedelta(days=1)
         return count
@@ -264,8 +309,7 @@ def expected_candle_count(
     trading_days = 0
     current = start_utc
     while current <= end_utc:
-        local = current.astimezone(session.tz)
-        if local.weekday() in session.trading_days:
+        if _is_trading_day(current):
             trading_days += 1
         current += timedelta(days=1)
 
