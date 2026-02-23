@@ -225,6 +225,67 @@
         .kill-btn:hover {
             background: rgba(248, 81, 73, 0.2);
         }
+
+        /* Live Prices */
+        .prices-card { grid-column: 1 / -1; }
+
+        .price-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .price-card {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 6px;
+            padding: 14px;
+        }
+
+        .price-symbol {
+            font-size: 14px;
+            font-weight: 700;
+            color: #e1e4e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .price-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .price-tag.crypto { background: rgba(136, 87, 229, 0.2); color: #a371f7; }
+        .price-tag.asx { background: rgba(46, 160, 67, 0.2); color: #3fb950; }
+        .price-tag.us { background: rgba(88, 166, 255, 0.2); color: #58a6ff; }
+
+        .price-value {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 8px 0 4px;
+            color: #e1e4e8;
+        }
+
+        .price-change { font-size: 13px; font-weight: 600; }
+        .price-change.up { color: #3fb950; }
+        .price-change.down { color: #f85149; }
+        .price-change.flat { color: #8b949e; }
+
+        .price-meta { font-size: 11px; color: #484f58; margin-top: 6px; }
+
+        .price-error {
+            color: #d29922;
+            font-size: 12px;
+            padding: 8px;
+            background: rgba(187, 128, 9, 0.1);
+            border-radius: 4px;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
@@ -263,6 +324,15 @@
                 <div class="card-header">Open Positions</div>
                 <div class="card-value blue" id="positions-count">0</div>
                 <div class="card-sub">Max $100 per position</div>
+            </div>
+
+            <div class="card prices-card">
+                <div class="card-header">
+                    Live Prices
+                    <span id="prices-status" style="font-size:11px; color:#484f58; text-transform:none; letter-spacing:0;"> -- loading</span>
+                </div>
+                <div class="price-grid" id="price-grid"></div>
+                <div id="price-errors"></div>
             </div>
 
             <div class="card markets-card">
@@ -407,13 +477,76 @@
             }
         }
 
+        function formatPrice(cents, currency) {
+            const dollars = cents / 100;
+            const sym = currency === 'AUD' ? 'A$' : '$';
+            if (dollars >= 1000) {
+                return sym + dollars.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            return sym + dollars.toFixed(2);
+        }
+
+        function renderPriceCard(item, type) {
+            const changePct = type === 'crypto' ? item.change_24h_pct : item.change_pct;
+            const changeClass = changePct > 0 ? 'up' : changePct < 0 ? 'down' : 'flat';
+            const delayTag = item.delayed ? ' (15m delay)' : '';
+            const changeLabel = type === 'crypto' ? '24h' : 'day';
+            const sign = changePct >= 0 ? '+' : '';
+            return `
+                <div class="price-card">
+                    <div class="price-symbol">
+                        ${item.symbol}
+                        <span class="price-tag ${item.market}">${item.market}</span>
+                    </div>
+                    <div class="price-value">${formatPrice(item.price_cents, item.currency)}</div>
+                    <div class="price-change ${changeClass}">${sign}${changePct.toFixed(2)}% ${changeLabel}</div>
+                    <div class="price-meta">${item.currency}${delayTag}</div>
+                </div>
+            `;
+        }
+
+        async function fetchPrices() {
+            try {
+                const data = await fetch(`${API_BASE}/api/dashboard/prices`).then(r => r.json());
+                const grid = document.getElementById('price-grid');
+                const errDiv = document.getElementById('price-errors');
+                const status = document.getElementById('prices-status');
+
+                let html = '';
+                for (const item of (data.crypto || [])) html += renderPriceCard(item, 'crypto');
+                for (const item of (data.stocks || [])) html += renderPriceCard(item, 'stock');
+
+                grid.innerHTML = html || '<div class="price-meta">No price data available</div>';
+
+                if (data.errors && data.errors.length > 0) {
+                    errDiv.innerHTML = data.errors.map(e =>
+                        `<div class="price-error">${e.source}: ${e.error}</div>`
+                    ).join('');
+                } else {
+                    errDiv.innerHTML = '';
+                }
+
+                const t = new Date(data.fetched_at_utc);
+                status.textContent = ' -- updated ' + t.toLocaleTimeString('en-AU', { hour12: false, timeZone: 'Australia/Sydney' }) + ' AEST';
+
+                const cc = (data.crypto || []).length;
+                const sc = (data.stocks || []).length;
+                addLog('info', `Prices: ${cc} crypto, ${sc} stocks`);
+            } catch (err) {
+                document.getElementById('prices-status').textContent = ' -- error';
+                addLog('warn', `Price fetch failed: ${err.message}`);
+            }
+        }
+
         // Initial fetch
         document.getElementById('log-entries').innerHTML = '';
         addLog('info', 'FlashTrade dashboard loaded');
         fetchStatus();
+        fetchPrices();
 
         // Poll every 30 seconds
         setInterval(fetchStatus, 30000);
+        setInterval(fetchPrices, 30000);
     </script>
 </body>
 </html>
