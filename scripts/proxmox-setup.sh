@@ -78,6 +78,10 @@ pct create "$CT_ID" "$TEMPLATE" \
     --onboot 1 \
     --start 0
 
+# --- Fix AppArmor for Docker-in-LXC ---
+info "Disabling AppArmor restriction (required for Docker-in-LXC)..."
+echo "lxc.apparmor.profile: unconfined" >> "/etc/pve/lxc/${CT_ID}.conf"
+
 # --- Start container ---
 info "Starting container..."
 pct start "$CT_ID"
