@@ -762,11 +762,18 @@
                     Watched Symbols
                     <span id="symbols-status" style="font-size:11px; color:#484f58; text-transform:none; letter-spacing:0;"> -- auto-trade off</span>
                 </div>
-                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; margin-bottom:12px; font-size:11px; color:#8b949e;">
+                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; margin-bottom:4px; font-size:11px; color:#8b949e;">
                     <span><span class="regime-tag trending">Trending</span> Momentum (RSI+MACD)</span>
                     <span><span class="regime-tag ranging">Ranging</span> Mean Reversion (Bollinger)</span>
                     <span><span class="regime-tag volatile">Volatile</span> Conservative</span>
                     <span><span class="regime-tag unknown">Unknown</span> Needs data</span>
+                </div>
+                <div style="font-size:11px; color:#484f58; margin-bottom:12px;">
+                    Signals: <strong style="color:#3fb950;">buy</strong> = entry conditions met,
+                    <strong style="color:#f85149;">sell</strong> = exit conditions met,
+                    <strong style="color:#8b949e;">hold</strong> = no action, waiting for setup.
+                    Timeframe = candle size used for analysis. Checked every 5 min.
+                    <span id="next-check" style="color:#58a6ff;"></span>
                 </div>
                 <table class="symbols-table" id="symbols-table">
                     <thead>
@@ -1442,6 +1449,20 @@
                 // Silently fail
             }
         }
+
+        // ---- Next check countdown ----
+        let nextCheckSeconds = 300; // 5 minutes
+        function updateNextCheck() {
+            const el = document.getElementById('next-check');
+            if (!el) return;
+            const m = Math.floor(nextCheckSeconds / 60);
+            const s = nextCheckSeconds % 60;
+            el.textContent = `Next check: ${m}:${s.toString().padStart(2, '0')}`;
+            nextCheckSeconds--;
+            if (nextCheckSeconds < 0) nextCheckSeconds = 300;
+        }
+        setInterval(updateNextCheck, 1000);
+        updateNextCheck();
 
         // Initial fetch
         document.getElementById('log-entries').innerHTML = '';
