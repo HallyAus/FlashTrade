@@ -45,8 +45,14 @@ celery_app.conf.update(
             "task": "app.tasks.trade_tasks.check_stop_losses",
             "schedule": 60.0,
         },
+        # --- AI Recommendations ---
+        # Claude analysis: every hour
+        "generate-recommendations-1h": {
+            "task": "app.tasks.recommendation_tasks.generate_recommendations",
+            "schedule": 3600.0,
+        },
     },
 )
 
 # Import tasks so Celery discovers them
-from app.tasks import data_tasks, trade_tasks, monitoring_tasks  # noqa: F401, E402
+from app.tasks import data_tasks, trade_tasks, monitoring_tasks, recommendation_tasks  # noqa: F401, E402
