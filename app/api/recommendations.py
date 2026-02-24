@@ -39,6 +39,10 @@ async def get_recommendations():
             "generated_at_utc": None,
             "market_summary": "No recommendations available yet. Waiting for first hourly analysis.",
             "top_opportunities": [],
+            "crypto_opportunities": [],
+            "asx_opportunities": [],
+            "us_opportunities": [],
+            "market_overview": [],
             "symbols_to_avoid": [],
             "disclaimer": (
                 "AI-generated analysis for informational purposes only. "

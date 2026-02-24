@@ -63,15 +63,20 @@ DEFAULT_WATCHED_SYMBOLS = [
     {"symbol": "QQQ", "market": "us", "timeframe": "1d"},
 ]
 
-async def get_watched_symbols() -> list[dict]:
+async def get_watched_symbols(redis_conn=None) -> list[dict]:
     """Load watched symbols from Redis, fall back to defaults."""
-    r = aioredis.from_url(settings.redis_url, decode_responses=True, max_connections=5)
+    close_after = False
+    r = redis_conn
+    if r is None:
+        r = aioredis.from_url(settings.redis_url, decode_responses=True, max_connections=5)
+        close_after = True
     try:
         raw = await r.get(REDIS_KEY_WATCHED)
         if raw:
             return json.loads(raw)
     finally:
-        await r.aclose()
+        if close_after:
+            await r.aclose()
     return list(DEFAULT_WATCHED_SYMBOLS)
 
 
@@ -141,7 +146,7 @@ class AutoTrader:
         enabled = await r.get(REDIS_KEY_AUTO_TRADE) == "1"
 
         symbols_status = []
-        watched = await get_watched_symbols()
+        watched = await get_watched_symbols(redis_conn=r)
         for sym in watched:
             regime = await r.get(f"{REDIS_KEY_REGIME_PREFIX}{sym['symbol']}")
             last_signal = await r.get(f"{REDIS_KEY_LAST_SIGNAL_PREFIX}{sym['symbol']}")

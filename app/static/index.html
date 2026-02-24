@@ -1111,10 +1111,10 @@
                     </span>
                 </div>
                 <div class="filter-tabs" id="overview-filters" style="margin-top:8px;">
-                    <button class="filter-tab active" data-filter="all" onclick="App.setOverviewFilter('all')">All</button>
-                    <button class="filter-tab" data-filter="crypto" onclick="App.setOverviewFilter('crypto')">Crypto</button>
-                    <button class="filter-tab" data-filter="asx" onclick="App.setOverviewFilter('asx')">ASX</button>
-                    <button class="filter-tab" data-filter="us" onclick="App.setOverviewFilter('us')">US</button>
+                    <button class="filter-tab active" data-filter="all" onclick="FT.setOverviewFilter('all')">All</button>
+                    <button class="filter-tab" data-filter="crypto" onclick="FT.setOverviewFilter('crypto')">Crypto</button>
+                    <button class="filter-tab" data-filter="asx" onclick="FT.setOverviewFilter('asx')">ASX</button>
+                    <button class="filter-tab" data-filter="us" onclick="FT.setOverviewFilter('us')">US</button>
                 </div>
                 <table class="symbols-table" id="overview-table">
                     <thead>
@@ -1150,11 +1150,20 @@
                 </div>
                 <div id="rec-summary" style="font-size:13px; color:#9ca3af; margin:8px 0; line-height:1.5;"></div>
                 <div class="rec-tabs" id="rec-tabs">
-                    <button class="rec-tab active" data-market="crypto" onclick="App.setRecTab('crypto')">Crypto <span class="tab-count" id="rec-count-crypto"></span></button>
-                    <button class="rec-tab" data-market="asx" onclick="App.setRecTab('asx')">ASX <span class="tab-count" id="rec-count-asx"></span></button>
-                    <button class="rec-tab" data-market="us" onclick="App.setRecTab('us')">US <span class="tab-count" id="rec-count-us"></span></button>
+                    <button class="rec-tab active" data-market="all" onclick="FT.setRecTab('all')">All <span class="tab-count" id="rec-count-all"></span></button>
+                    <button class="rec-tab" data-market="crypto" onclick="FT.setRecTab('crypto')">Crypto <span class="tab-count" id="rec-count-crypto"></span></button>
+                    <button class="rec-tab" data-market="asx" onclick="FT.setRecTab('asx')">ASX <span class="tab-count" id="rec-count-asx"></span></button>
+                    <button class="rec-tab" data-market="us" onclick="FT.setRecTab('us')">US <span class="tab-count" id="rec-count-us"></span></button>
                 </div>
-                <div class="rec-section active" id="rec-section-crypto">
+                <div class="rec-section active" id="rec-section-all">
+                    <table class="symbols-table"><thead><tr>
+                        <th>#</th><th>Symbol</th><th>Mkt</th><th>Action</th><th>Confidence</th>
+                        <th>Entry</th><th>Target</th><th>Stop</th><th>TF</th><th>Reasoning</th><th></th>
+                    </tr></thead><tbody id="rec-body-all">
+                        <tr><td colspan="11" style="color:#6b7280; text-align:center;">Waiting for analysis...</td></tr>
+                    </tbody></table>
+                </div>
+                <div class="rec-section" id="rec-section-crypto">
                     <table class="symbols-table"><thead><tr>
                         <th>#</th><th>Symbol</th><th>Action</th><th>Confidence</th>
                         <th>Entry</th><th>Target</th><th>Stop</th><th>TF</th><th>Reasoning</th><th></th>
@@ -1329,8 +1338,8 @@
                         <option value="4h">4h</option>
                         <option value="1d">1d</option>
                     </select>
-                    <button onclick="App.addSymbol()">Add Symbol</button>
-                    <button onclick="App.resetSymbols()" style="color:#f85149;" title="Reset watchlist to default 30 symbols">Reset Defaults</button>
+                    <button onclick="FT.addSymbol()">Add Symbol</button>
+                    <button onclick="FT.resetSymbols()" style="color:#f85149;" title="Reset watchlist to default 30 symbols">Reset Defaults</button>
                 </div>
                 <div class="card-header" style="margin-top:16px;">Trade Log</div>
                 <div class="signal-log" id="signal-log">
@@ -2588,7 +2597,7 @@
                     removeBtn.textContent = 'x';
                     removeBtn.title = 'Remove ' + s.symbol + ' from watchlist';
                     removeBtn.dataset.symbol = s.symbol;
-                    removeBtn.onclick = function() { App.removeSymbol(this.dataset.symbol); };
+                    removeBtn.onclick = function() { FT.removeSymbol(this.dataset.symbol); };
                     tdRemove.appendChild(removeBtn);
 
                     tr.appendChild(tdSym);
@@ -2985,7 +2994,104 @@
                 statusEl.style.color = data.error ? '#f85149' : '#6b7280';
             }
 
+            // Helper: render a list of recommendations into a tbody
+            function renderRecRows(tbody, opps, showMarket, colSpan, errorMsg) {
+                tbody.innerHTML = '';
+                if (opps.length === 0) {
+                    var tr = document.createElement('tr');
+                    var td = document.createElement('td');
+                    td.colSpan = colSpan;
+                    td.style.cssText = 'color:#6b7280; text-align:center;';
+                    td.textContent = errorMsg;
+                    tr.appendChild(td);
+                    tbody.appendChild(tr);
+                    return;
+                }
+                for (var i = 0; i < opps.length; i++) {
+                    var opp = opps[i];
+                    var tr = document.createElement('tr');
+
+                    var tdRank = document.createElement('td');
+                    tdRank.textContent = '#' + (i + 1);
+                    tdRank.style.color = '#6b7280';
+                    tr.appendChild(tdRank);
+
+                    var tdSym = document.createElement('td');
+                    tdSym.style.fontWeight = '600';
+                    tdSym.textContent = opp.symbol;
+                    tr.appendChild(tdSym);
+
+                    if (showMarket) {
+                        var tdMkt = document.createElement('td');
+                        var mktTag = document.createElement('span');
+                        mktTag.className = 'symbol-market-tag ' + opp.market;
+                        mktTag.textContent = opp.market;
+                        tdMkt.appendChild(mktTag);
+                        tr.appendChild(tdMkt);
+                    }
+
+                    var tdAction = document.createElement('td');
+                    var badge = document.createElement('span');
+                    badge.className = 'rec-action ' + opp.action;
+                    badge.textContent = opp.action.toUpperCase();
+                    tdAction.appendChild(badge);
+                    tr.appendChild(tdAction);
+
+                    var tdConf = document.createElement('td');
+                    var barOuter = document.createElement('span');
+                    barOuter.className = 'confidence-bar';
+                    var barFill = document.createElement('span');
+                    barFill.className = 'confidence-fill';
+                    var pct = Math.round(opp.confidence * 100);
+                    barFill.style.width = pct + '%';
+                    barFill.style.background = pct >= 70 ? '#3fb950' : pct >= 40 ? '#f0883e' : '#f85149';
+                    barOuter.appendChild(barFill);
+                    tdConf.appendChild(barOuter);
+                    tdConf.appendChild(document.createTextNode(' ' + pct + '%'));
+                    tr.appendChild(tdConf);
+
+                    var keys = ['entry_price_cents', 'target_price_cents', 'stop_loss_cents'];
+                    for (var k = 0; k < keys.length; k++) {
+                        var tdPrice = document.createElement('td');
+                        var val = opp[keys[k]];
+                        tdPrice.textContent = val ? '$' + (val / 100).toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '--';
+                        tdPrice.style.fontSize = '12px';
+                        tr.appendChild(tdPrice);
+                    }
+
+                    var tdTf = document.createElement('td');
+                    tdTf.textContent = opp.timeframe || '--';
+                    tdTf.style.fontSize = '12px';
+                    tr.appendChild(tdTf);
+
+                    var tdReason = document.createElement('td');
+                    tdReason.style.cssText = 'font-size:12px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+                    tdReason.textContent = opp.reasoning;
+                    tdReason.title = opp.reasoning + '\n\nRisks: ' + (opp.risk_notes || '');
+                    tr.appendChild(tdReason);
+
+                    var tdWatch = document.createElement('td');
+                    var watchBtn = document.createElement('button');
+                    watchBtn.className = 'btn-watch';
+                    watchBtn.textContent = 'Watch';
+                    watchBtn.title = 'Add ' + opp.symbol + ' to watched symbols';
+                    watchBtn.dataset.symbol = opp.symbol;
+                    watchBtn.dataset.market = opp.market;
+                    watchBtn.onclick = function() {
+                        var sym = this.dataset.symbol;
+                        var mkt = this.dataset.market;
+                        var tf = mkt === 'crypto' ? '1h' : '1d';
+                        FT.addSymbolDirect(sym, mkt, tf);
+                    };
+                    tdWatch.appendChild(watchBtn);
+                    tr.appendChild(tdWatch);
+
+                    tbody.appendChild(tr);
+                }
+            }
+
             // Render per-market recommendations
+            var allOpps = [];
             var markets = ['crypto', 'asx', 'us'];
             for (var m = 0; m < markets.length; m++) {
                 var mkt = markets[m];
@@ -2994,96 +3100,22 @@
                 if (opps.length === 0 && data.top_opportunities) {
                     opps = data.top_opportunities.filter(function(o) { return o.market === mkt; });
                 }
+                allOpps = allOpps.concat(opps);
                 var countEl = document.getElementById('rec-count-' + mkt);
                 if (countEl) countEl.textContent = '(' + opps.length + ')';
-
-                var tbody = document.getElementById('rec-body-' + mkt);
-                tbody.innerHTML = '';
-
-                if (opps.length === 0) {
-                    var tr = document.createElement('tr');
-                    var td = document.createElement('td');
-                    td.colSpan = 10;
-                    td.style.cssText = 'color:#6b7280; text-align:center;';
-                    td.textContent = data.error || 'No ' + mkt + ' recommendations yet.';
-                    tr.appendChild(td);
-                    tbody.appendChild(tr);
-                } else {
-                    for (var i = 0; i < opps.length; i++) {
-                        var opp = opps[i];
-                        var tr = document.createElement('tr');
-
-                        var tdRank = document.createElement('td');
-                        tdRank.textContent = '#' + (i + 1);
-                        tdRank.style.color = '#6b7280';
-                        tr.appendChild(tdRank);
-
-                        var tdSym = document.createElement('td');
-                        tdSym.style.fontWeight = '600';
-                        tdSym.textContent = opp.symbol;
-                        tr.appendChild(tdSym);
-
-                        var tdAction = document.createElement('td');
-                        var badge = document.createElement('span');
-                        badge.className = 'rec-action ' + opp.action;
-                        badge.textContent = opp.action.toUpperCase();
-                        tdAction.appendChild(badge);
-                        tr.appendChild(tdAction);
-
-                        var tdConf = document.createElement('td');
-                        var barOuter = document.createElement('span');
-                        barOuter.className = 'confidence-bar';
-                        var barFill = document.createElement('span');
-                        barFill.className = 'confidence-fill';
-                        var pct = Math.round(opp.confidence * 100);
-                        barFill.style.width = pct + '%';
-                        barFill.style.background = pct >= 70 ? '#3fb950' : pct >= 40 ? '#f0883e' : '#f85149';
-                        barOuter.appendChild(barFill);
-                        tdConf.appendChild(barOuter);
-                        tdConf.appendChild(document.createTextNode(' ' + pct + '%'));
-                        tr.appendChild(tdConf);
-
-                        var keys = ['entry_price_cents', 'target_price_cents', 'stop_loss_cents'];
-                        for (var k = 0; k < keys.length; k++) {
-                            var tdPrice = document.createElement('td');
-                            var val = opp[keys[k]];
-                            tdPrice.textContent = val ? '$' + (val / 100).toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '--';
-                            tdPrice.style.fontSize = '12px';
-                            tr.appendChild(tdPrice);
-                        }
-
-                        var tdTf = document.createElement('td');
-                        tdTf.textContent = opp.timeframe || '--';
-                        tdTf.style.fontSize = '12px';
-                        tr.appendChild(tdTf);
-
-                        var tdReason = document.createElement('td');
-                        tdReason.style.cssText = 'font-size:12px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
-                        tdReason.textContent = opp.reasoning;
-                        tdReason.title = opp.reasoning + '\n\nRisks: ' + (opp.risk_notes || '');
-                        tr.appendChild(tdReason);
-
-                        // Watch button
-                        var tdWatch = document.createElement('td');
-                        var watchBtn = document.createElement('button');
-                        watchBtn.className = 'btn-watch';
-                        watchBtn.textContent = 'Watch';
-                        watchBtn.title = 'Add ' + opp.symbol + ' to watched symbols';
-                        watchBtn.dataset.symbol = opp.symbol;
-                        watchBtn.dataset.market = opp.market;
-                        watchBtn.onclick = function() {
-                            var sym = this.dataset.symbol;
-                            var mkt = this.dataset.market;
-                            var tf = mkt === 'crypto' ? '1h' : '1d';
-                            App.addSymbolDirect(sym, mkt, tf);
-                        };
-                        tdWatch.appendChild(watchBtn);
-                        tr.appendChild(tdWatch);
-
-                        tbody.appendChild(tr);
-                    }
-                }
+                renderRecRows(
+                    document.getElementById('rec-body-' + mkt), opps, false, 10,
+                    data.error || 'No ' + mkt + ' recommendations yet.'
+                );
             }
+
+            // Render "All" tab
+            var countAllEl = document.getElementById('rec-count-all');
+            if (countAllEl) countAllEl.textContent = '(' + allOpps.length + ')';
+            renderRecRows(
+                document.getElementById('rec-body-all'), allOpps, true, 11,
+                data.error || 'No recommendations available yet. Waiting for first hourly analysis.'
+            );
 
             // Render market overview
             this.renderMarketOverview(data.market_overview || []);
