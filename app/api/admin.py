@@ -1,13 +1,21 @@
 """Admin API routes — kill switch, auto-trade control, system status, backtesting."""
 
+import json
 import logging
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from app.api.auth import require_api_key
+from app.config import settings
 from app.services.risk_manager import RiskManager
-from app.services.strategy.auto_trader import AutoTrader
+from app.services.strategy.auto_trader import (
+    AutoTrader,
+    DEFAULT_WATCHED_SYMBOLS,
+    REDIS_KEY_WATCHED,
+    get_watched_symbols,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -98,6 +106,86 @@ async def trigger_backfill(period: str = "6mo"):
     except Exception as e:
         logger.error("Backfill failed: %s", e)
         return {"status": "error", "message": str(e)}
+
+
+# ---------- Symbol management ----------
+
+
+class AddSymbolRequest(BaseModel):
+    """Request body for adding a watched symbol."""
+
+    symbol: str = Field(..., min_length=1, max_length=20)
+    market: str = Field(..., pattern="^(crypto|asx|us)$")
+    timeframe: str = Field(default="1h", pattern="^(1h|4h|1d)$")
+
+
+@router.get("/symbols")
+async def list_symbols():
+    """List all currently watched symbols."""
+    symbols = await get_watched_symbols()
+    return {
+        "count": len(symbols),
+        "symbols": symbols,
+    }
+
+
+@router.post("/symbols", dependencies=[Depends(require_api_key)])
+async def add_symbol(req: AddSymbolRequest):
+    """Add a symbol to the watchlist."""
+    # Validate ASX suffix
+    if req.market == "asx" and not req.symbol.endswith(".AX"):
+        return {"status": "error", "message": "ASX symbols must end with .AX (e.g., BHP.AX)"}
+
+    symbols = await get_watched_symbols()
+
+    # Check for duplicate
+    for s in symbols:
+        if s["symbol"].upper() == req.symbol.upper():
+            return {"status": "error", "message": f"{req.symbol} is already in the watchlist"}
+
+    symbols.append({
+        "symbol": req.symbol.upper(),
+        "market": req.market,
+        "timeframe": req.timeframe,
+    })
+
+    r = aioredis.from_url(settings.redis_url, decode_responses=True)
+    await r.set(REDIS_KEY_WATCHED, json.dumps(symbols))
+    await r.aclose()
+
+    return {"status": "added", "symbol": req.symbol.upper(), "count": len(symbols)}
+
+
+@router.delete("/symbols/{symbol}", dependencies=[Depends(require_api_key)])
+async def remove_symbol(symbol: str):
+    """Remove a symbol from the watchlist."""
+    symbols = await get_watched_symbols()
+    original_len = len(symbols)
+
+    symbols = [s for s in symbols if s["symbol"].upper() != symbol.upper()]
+
+    if len(symbols) == original_len:
+        return {"status": "error", "message": f"{symbol} not found in watchlist"}
+
+    r = aioredis.from_url(settings.redis_url, decode_responses=True)
+    await r.set(REDIS_KEY_WATCHED, json.dumps(symbols))
+    await r.aclose()
+
+    return {"status": "removed", "symbol": symbol.upper(), "count": len(symbols)}
+
+
+@router.post("/symbols/reset", dependencies=[Depends(require_api_key)])
+async def reset_symbols():
+    """Reset watchlist to default 30 symbols."""
+    r = aioredis.from_url(settings.redis_url, decode_responses=True)
+    await r.delete(REDIS_KEY_WATCHED)
+    await r.aclose()
+
+    return {
+        "status": "reset",
+        "count": len(DEFAULT_WATCHED_SYMBOLS),
+        "message": "Watchlist reset to defaults",
+    }
 
 
 class BacktestRequest(BaseModel):

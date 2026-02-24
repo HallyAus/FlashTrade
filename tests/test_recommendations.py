@@ -67,6 +67,10 @@ class TestRecommendationModels:
         assert rec_set.symbols_to_avoid == []
         assert "Not financial advice" in rec_set.disclaimer
         assert rec_set.token_usage == {}
+        assert rec_set.crypto_opportunities == []
+        assert rec_set.asx_opportunities == []
+        assert rec_set.us_opportunities == []
+        assert rec_set.market_overview == []
 
     def test_recommendation_set_with_opportunities(self):
         rec = Recommendation(
@@ -119,7 +123,7 @@ class TestPromptBuilding:
         assert "BTC" in prompt
         assert "15000000" in prompt
         assert "insufficient data" in prompt
-        assert "recommendations as JSON" in prompt
+        assert "recommendations" in prompt
 
     def test_build_user_prompt_handles_none_indicators(self):
         recommender = ClaudeRecommender()
@@ -154,7 +158,7 @@ class TestResponseParsing:
 
     SAMPLE_RESPONSE = {
         "market_summary": "Crypto showing strength, stocks mixed.",
-        "top_opportunities": [
+        "crypto_opportunities": [
             {
                 "symbol": "BTC",
                 "market": "crypto",
@@ -166,6 +170,30 @@ class TestResponseParsing:
                 "stop_loss_cents": 14200000,
                 "reasoning": "Breakout above 20-day Donchian channel",
                 "risk_notes": "Fed meeting this week",
+                "timeframe": "2-5 days",
+            },
+        ],
+        "asx_opportunities": [
+            {
+                "symbol": "BHP.AX",
+                "market": "asx",
+                "action": "watch",
+                "confidence": 0.5,
+                "current_price_cents": 4500,
+                "reasoning": "Consolidating near support",
+                "risk_notes": "Iron ore prices volatile",
+                "timeframe": "1-5 days",
+            },
+        ],
+        "us_opportunities": [
+            {
+                "symbol": "AAPL",
+                "market": "us",
+                "action": "buy",
+                "confidence": 0.65,
+                "current_price_cents": 23000,
+                "reasoning": "Oversold bounce setup",
+                "risk_notes": "Earnings next week",
                 "timeframe": "2-5 days",
             },
         ],
@@ -190,13 +218,21 @@ class TestResponseParsing:
             mock_ctx.return_value = {
                 "timestamp_utc": "2025-01-01T00:00:00Z",
                 "symbols": [],
+                "market_overview": [],
             }
             result = await recommender.generate()
 
         assert isinstance(result, RecommendationSet)
-        assert len(result.top_opportunities) == 1
-        assert result.top_opportunities[0].symbol == "BTC"
-        assert result.top_opportunities[0].confidence == 0.8
+        # Per-market arrays
+        assert len(result.crypto_opportunities) == 1
+        assert result.crypto_opportunities[0].symbol == "BTC"
+        assert result.crypto_opportunities[0].confidence == 0.8
+        assert len(result.asx_opportunities) == 1
+        assert result.asx_opportunities[0].symbol == "BHP.AX"
+        assert len(result.us_opportunities) == 1
+        assert result.us_opportunities[0].symbol == "AAPL"
+        # Combined top_opportunities
+        assert len(result.top_opportunities) == 3
         assert result.symbols_to_avoid == ["DOGE"]
         assert result.token_usage["input_tokens"] == 1500
 
@@ -216,10 +252,11 @@ class TestResponseParsing:
         recommender._client = mock_client
 
         with patch.object(recommender, "_gather_context", new_callable=AsyncMock) as mock_ctx:
-            mock_ctx.return_value = {"timestamp_utc": "2025-01-01T00:00:00Z", "symbols": []}
+            mock_ctx.return_value = {"timestamp_utc": "2025-01-01T00:00:00Z", "symbols": [], "market_overview": []}
             result = await recommender.generate()
 
-        assert len(result.top_opportunities) == 1
+        assert len(result.top_opportunities) == 3
+        assert len(result.crypto_opportunities) == 1
 
     @pytest.mark.asyncio
     async def test_parse_invalid_json_raises(self):
@@ -236,7 +273,7 @@ class TestResponseParsing:
         recommender._client = mock_client
 
         with patch.object(recommender, "_gather_context", new_callable=AsyncMock) as mock_ctx:
-            mock_ctx.return_value = {"timestamp_utc": "2025-01-01T00:00:00Z", "symbols": []}
+            mock_ctx.return_value = {"timestamp_utc": "2025-01-01T00:00:00Z", "symbols": [], "market_overview": []}
             with pytest.raises(ValueError, match="Invalid JSON"):
                 await recommender.generate()
 
@@ -267,6 +304,7 @@ class TestSerialization:
             model_used="claude-sonnet-4-6",
             market_summary="Quiet markets.",
             top_opportunities=[rec],
+            crypto_opportunities=[rec],
         )
 
         json_str = rec_set.model_dump_json()
@@ -274,5 +312,7 @@ class TestSerialization:
 
         assert data["model_used"] == "claude-sonnet-4-6"
         assert len(data["top_opportunities"]) == 1
+        assert len(data["crypto_opportunities"]) == 1
         assert data["top_opportunities"][0]["action"] == "watch"
         assert "Not financial advice" in data["disclaimer"]
+        assert data["market_overview"] == []

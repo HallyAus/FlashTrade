@@ -24,8 +24,10 @@ from app.services.strategy.turtle import TurtleCryptoStrategy, TurtleStocksStrat
 
 logger = logging.getLogger(__name__)
 
-# Recommended symbols for auto-trading (30 total: 10 crypto, 10 ASX, 10 US)
-WATCHED_SYMBOLS = [
+REDIS_KEY_WATCHED = "flashtrade:watched_symbols"
+
+# Default symbols for auto-trading (30 total: 10 crypto, 10 ASX, 10 US)
+DEFAULT_WATCHED_SYMBOLS = [
     # Crypto — high liquidity, 24/7, good for both strategies
     {"symbol": "BTC", "market": "crypto", "timeframe": "1h"},
     {"symbol": "ETH", "market": "crypto", "timeframe": "1h"},
@@ -60,6 +62,31 @@ WATCHED_SYMBOLS = [
     {"symbol": "NFLX", "market": "us", "timeframe": "1d"},
     {"symbol": "QQQ", "market": "us", "timeframe": "1d"},
 ]
+
+async def get_watched_symbols() -> list[dict]:
+    """Load watched symbols from Redis, fall back to defaults."""
+    r = aioredis.from_url(settings.redis_url, decode_responses=True, max_connections=5)
+    try:
+        raw = await r.get(REDIS_KEY_WATCHED)
+        if raw:
+            return json.loads(raw)
+    finally:
+        await r.aclose()
+    return list(DEFAULT_WATCHED_SYMBOLS)
+
+
+def get_watched_symbols_sync() -> list[dict]:
+    """Sync version for non-async contexts (e.g., CLI scripts)."""
+    import redis
+    r = redis.from_url(settings.redis_url, decode_responses=True)
+    try:
+        raw = r.get(REDIS_KEY_WATCHED)
+        if raw:
+            return json.loads(raw)
+    finally:
+        r.close()
+    return list(DEFAULT_WATCHED_SYMBOLS)
+
 
 REDIS_KEY_AUTO_TRADE = "flashtrade:auto_trade"
 REDIS_KEY_REGIME_PREFIX = "flashtrade:regime:"
@@ -114,7 +141,8 @@ class AutoTrader:
         enabled = await r.get(REDIS_KEY_AUTO_TRADE) == "1"
 
         symbols_status = []
-        for sym in WATCHED_SYMBOLS:
+        watched = await get_watched_symbols()
+        for sym in watched:
             regime = await r.get(f"{REDIS_KEY_REGIME_PREFIX}{sym['symbol']}")
             last_signal = await r.get(f"{REDIS_KEY_LAST_SIGNAL_PREFIX}{sym['symbol']}")
             proximity_raw = await r.get(f"{REDIS_KEY_PROXIMITY_PREFIX}{sym['symbol']}")

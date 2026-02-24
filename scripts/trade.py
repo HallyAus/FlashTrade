@@ -28,7 +28,7 @@ async def run_paper() -> None:
     """Run paper trading loop: evaluate signals every 5 min, check stops every 60s."""
     from app.services.execution.paper_executor import PaperExecutor
     from app.services.risk_manager import Order, RiskManager
-    from app.services.strategy.auto_trader import AutoTrader, WATCHED_SYMBOLS
+    from app.services.strategy.auto_trader import AutoTrader, get_watched_symbols
     from app.services.data.market_calendar import Market, is_market_open
 
     risk_manager = RiskManager()
@@ -38,7 +38,8 @@ async def run_paper() -> None:
     # Enable auto-trade on startup
     await trader.set_enabled(True)
 
-    print("Paper trading started. Evaluating 30 symbols every 5 minutes.")
+    watched = await get_watched_symbols()
+    print(f"Paper trading started. Evaluating {len(watched)} symbols every 5 minutes.")
     print("Press Ctrl+C to stop.\n")
 
     eval_interval = 300  # 5 minutes
@@ -60,7 +61,7 @@ async def run_paper() -> None:
                 signals_count = 0
                 orders_count = 0
 
-                for sym in WATCHED_SYMBOLS:
+                for sym in watched:
                     try:
                         market_enum = Market(sym["market"])
                         if not is_market_open(market_enum):
