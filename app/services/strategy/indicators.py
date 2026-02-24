@@ -92,6 +92,32 @@ def atr(
     return true_range.ewm(alpha=1 / period, min_periods=period).mean()
 
 
+def ema(series: pd.Series, period: int = 50) -> pd.Series:
+    """Exponential Moving Average.
+
+    Args:
+        series: Price series (typically close prices in cents).
+        period: Lookback period.
+
+    Returns:
+        EMA values as a Series.
+    """
+    return series.ewm(span=period, adjust=False).mean()
+
+
+def volume_sma(volume: pd.Series, period: int = 20) -> pd.Series:
+    """Simple Moving Average of volume for relative volume comparison.
+
+    Args:
+        volume: Volume series.
+        period: Lookback period.
+
+    Returns:
+        Volume SMA values as a Series.
+    """
+    return volume.rolling(window=period).mean()
+
+
 def adx(
     high: pd.Series,
     low: pd.Series,

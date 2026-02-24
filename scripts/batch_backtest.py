@@ -161,6 +161,13 @@ async def run_batch(args: argparse.Namespace) -> None:
 
             t0 = time.time()
             try:
+                # Extract engine-level params from strategy_params
+                engine_kwargs = {}
+                strat_params = dict(strategy_params) if strategy_name != "auto" else {}
+                for key in ("fee_tier", "cooldown_bars"):
+                    if key in strat_params:
+                        engine_kwargs[key] = strat_params.pop(key)
+
                 engine = BacktestEngine(
                     strategy_name=strategy_name if strategy_name != "auto" else "meanrev",
                     symbol=job["symbol"],
@@ -168,7 +175,8 @@ async def run_batch(args: argparse.Namespace) -> None:
                     timeframe=job["timeframe"],
                     days=args.days,
                     auto_regime=(strategy_name == "auto"),
-                    strategy_params=strategy_params if strategy_name != "auto" else {},
+                    strategy_params=strat_params,
+                    **engine_kwargs,
                 )
                 result = await engine.run()
                 elapsed = time.time() - t0

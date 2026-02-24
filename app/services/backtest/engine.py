@@ -52,6 +52,8 @@ class BacktestEngine:
         starting_cash_cents: int = 1_000_000,
         auto_regime: bool = False,
         strategy_params: dict | None = None,
+        fee_tier: str = "default",
+        cooldown_bars: int = 0,
     ) -> None:
         self._strategy_name = strategy_name
         self._symbol = symbol
@@ -61,6 +63,8 @@ class BacktestEngine:
         self._starting_cash_cents = starting_cash_cents
         self._auto_regime = auto_regime
         self._strategy_params = strategy_params or {}
+        self._fee_tier = fee_tier
+        self._cooldown_bars = cooldown_bars
 
     async def run(self) -> BacktestResult:
         """Execute the backtest.
@@ -89,6 +93,8 @@ class BacktestEngine:
         broker = BacktestBroker(
             starting_cash_cents=self._starting_cash_cents,
             max_position_size_cents=settings.max_position_size_cents,
+            cooldown_bars=self._cooldown_bars,
+            fee_tier=self._fee_tier,
         )
 
         logger.info(

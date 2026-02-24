@@ -5,7 +5,7 @@ import logging
 import pandas as pd
 
 from app.services.strategy.base import BaseStrategy, Signal
-from app.services.strategy.indicators import atr, bollinger_bands, rsi
+from app.services.strategy.indicators import atr, bollinger_bands, ema, rsi, volume_sma
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +27,16 @@ class MeanReversionStrategy(BaseStrategy):
         bb_period: int = 20,
         bb_std: float = 2.0,
         atr_stop_multiplier: float = 1.5,
+        trend_filter: bool = False,
+        volume_filter: bool = False,
     ) -> None:
         self._rsi_oversold = rsi_oversold
         self._rsi_overbought = rsi_overbought
         self._bb_period = bb_period
         self._bb_std = bb_std
         self._atr_stop_multiplier = atr_stop_multiplier
+        self._trend_filter = trend_filter
+        self._volume_filter = volume_filter
 
     @property
     def name(self) -> str:
@@ -64,8 +68,25 @@ class MeanReversionStrategy(BaseStrategy):
 
         signals = []
 
+        # Apply filters to gate buy signals
+        buy_filtered = False
+        if self._trend_filter:
+            ema50 = ema(close, period=50)
+            ema200 = ema(close, period=200)
+            if not pd.isna(ema50.iloc[-1]) and not pd.isna(ema200.iloc[-1]):
+                if ema50.iloc[-1] < ema200.iloc[-1]:
+                    buy_filtered = True
+                    logger.debug("MeanRev buy filtered: EMA50 < EMA200 (bearish)")
+
+        if self._volume_filter and not buy_filtered and "volume" in df.columns:
+            vol_avg = volume_sma(df["volume"], period=20)
+            if not pd.isna(vol_avg.iloc[-1]) and vol_avg.iloc[-1] > 0:
+                if df["volume"].iloc[-1] < 1.2 * vol_avg.iloc[-1]:
+                    buy_filtered = True
+                    logger.debug("MeanRev buy filtered: volume below 1.2x average")
+
         # BUY signal: price below lower band + RSI oversold
-        if current_close < current_lower and current_rsi < self._rsi_oversold:
+        if not buy_filtered and current_close < current_lower and current_rsi < self._rsi_oversold:
             stop_loss = int(current_close - self._atr_stop_multiplier * current_atr)
             distance_below = (current_lower - current_close) / current_lower if current_lower > 0 else 0
             strength = min(1.0, distance_below * 10 + 0.3)
