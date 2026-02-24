@@ -16,10 +16,11 @@ from app.config import settings
 from app.database import async_session
 from app.models.ohlcv import OHLCV
 from app.services.strategy.base import Signal
-from app.services.strategy.indicators import atr, bollinger_bands, macd, rsi
+from app.services.strategy.indicators import atr, bollinger_bands, donchian_channel, macd, rsi
 from app.services.strategy.meanrev import MeanReversionStrategy
 from app.services.strategy.momentum import MomentumStrategy
 from app.services.strategy.regime import RegimeType, detect_regime
+from app.services.strategy.turtle import TurtleCryptoStrategy, TurtleStocksStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,8 @@ class AutoTrader:
     def __init__(self) -> None:
         self._momentum = MomentumStrategy()
         self._meanrev = MeanReversionStrategy()
+        self._turtle_crypto = TurtleCryptoStrategy()
+        self._turtle_stocks = TurtleStocksStrategy()
         self._redis: aioredis.Redis | None = None
         self._portfolio_value_cents = 1_000_000  # $10,000
 
@@ -278,6 +281,64 @@ class AutoTrader:
                 "conditions_total": len(conditions),
                 "rsi": round(current_rsi, 1) if current_rsi is not None else None,
                 "macd_hist": round(current_hist, 0) if current_hist is not None else None,
+            }
+
+        elif strategy_name in ("turtle_crypto", "turtle_stocks"):
+            is_crypto = strategy_name == "turtle_crypto"
+            entry_period = 15 if is_crypto else 20
+            exit_period = 8 if is_crypto else 10
+            stop_mult = 2.5 if is_crypto else 2.0
+
+            dc_upper, dc_lower, _ = donchian_channel(
+                df["high"].shift(1), df["low"].shift(1), entry_period
+            )
+            _, exit_lower, _ = donchian_channel(
+                df["high"].shift(1), df["low"].shift(1), exit_period
+            )
+            atr_values = atr(df["high"], df["low"], close, period=20)
+
+            current_close = float(close.iloc[-1])
+            current_upper = float(dc_upper.iloc[-1]) if not pd.isna(dc_upper.iloc[-1]) else None
+            current_exit_lower = float(exit_lower.iloc[-1]) if not pd.isna(exit_lower.iloc[-1]) else None
+            current_atr_val = float(atr_values.iloc[-1]) if not pd.isna(atr_values.iloc[-1]) else None
+
+            conditions = []
+
+            # Condition 1: Price near upper channel (breakout proximity)
+            near_breakout = current_upper is not None and current_close > current_upper
+            breakout_dist_pct = None
+            if current_upper and current_upper > 0:
+                breakout_dist_pct = round((current_close - current_upper) / current_upper * 100, 2)
+            conditions.append({
+                "name": f"Price above {entry_period}d high",
+                "current": round(current_close, 0),
+                "target": round(current_upper, 0) if current_upper else None,
+                "met": near_breakout,
+                "direction": "above",
+                "distance_pct": breakout_dist_pct,
+            })
+
+            # Condition 2: Price above exit channel (not in exit zone)
+            above_exit = current_exit_lower is not None and current_close > current_exit_lower
+            conditions.append({
+                "name": f"Price above {exit_period}d low",
+                "current": round(current_close, 0),
+                "target": round(current_exit_lower, 0) if current_exit_lower else None,
+                "met": above_exit,
+                "direction": "above",
+            })
+
+            met_count = sum(1 for c in conditions if c["met"])
+            return {
+                "strategy": strategy_name,
+                "conditions": conditions,
+                "conditions_met": met_count,
+                "conditions_total": len(conditions),
+                "price": round(current_close, 0),
+                "dc_upper": round(current_upper, 0) if current_upper else None,
+                "dc_exit_lower": round(current_exit_lower, 0) if current_exit_lower else None,
+                "atr": round(current_atr_val, 0) if current_atr_val else None,
+                "breakout_dist_pct": breakout_dist_pct,
             }
 
         else:  # meanrev

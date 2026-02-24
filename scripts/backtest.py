@@ -125,7 +125,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--strategy", required=True,
-        choices=["momentum", "meanrev", "auto"],
+        choices=["momentum", "meanrev", "turtle_crypto", "turtle_stocks", "auto"],
         help="Strategy to test (auto = regime-switching)",
     )
     parser.add_argument(
