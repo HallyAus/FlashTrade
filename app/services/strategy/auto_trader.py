@@ -23,7 +23,7 @@ from app.services.strategy.regime import RegimeType, detect_regime
 
 logger = logging.getLogger(__name__)
 
-# Recommended symbols for auto-trading
+# Recommended symbols for auto-trading (30 total: 10 crypto, 10 ASX, 10 US)
 WATCHED_SYMBOLS = [
     # Crypto — high liquidity, 24/7, good for both strategies
     {"symbol": "BTC", "market": "crypto", "timeframe": "1h"},
@@ -31,12 +31,33 @@ WATCHED_SYMBOLS = [
     {"symbol": "SOL", "market": "crypto", "timeframe": "1h"},
     {"symbol": "XRP", "market": "crypto", "timeframe": "1h"},
     {"symbol": "DOGE", "market": "crypto", "timeframe": "1h"},
+    {"symbol": "ADA", "market": "crypto", "timeframe": "1h"},
+    {"symbol": "AVAX", "market": "crypto", "timeframe": "1h"},
+    {"symbol": "LINK", "market": "crypto", "timeframe": "1h"},
+    {"symbol": "DOT", "market": "crypto", "timeframe": "1h"},
+    {"symbol": "MATIC", "market": "crypto", "timeframe": "1h"},
     # ASX — blue chips, liquid, good for mean reversion
     {"symbol": "BHP.AX", "market": "asx", "timeframe": "1d"},
     {"symbol": "CBA.AX", "market": "asx", "timeframe": "1d"},
     {"symbol": "CSL.AX", "market": "asx", "timeframe": "1d"},
     {"symbol": "WDS.AX", "market": "asx", "timeframe": "1d"},
     {"symbol": "FMG.AX", "market": "asx", "timeframe": "1d"},
+    {"symbol": "NAB.AX", "market": "asx", "timeframe": "1d"},
+    {"symbol": "WBC.AX", "market": "asx", "timeframe": "1d"},
+    {"symbol": "ANZ.AX", "market": "asx", "timeframe": "1d"},
+    {"symbol": "WOW.AX", "market": "asx", "timeframe": "1d"},
+    {"symbol": "RIO.AX", "market": "asx", "timeframe": "1d"},
+    # US — NASDAQ/large-cap tech + QQQ index
+    {"symbol": "AAPL", "market": "us", "timeframe": "1d"},
+    {"symbol": "NVDA", "market": "us", "timeframe": "1d"},
+    {"symbol": "MSFT", "market": "us", "timeframe": "1d"},
+    {"symbol": "GOOGL", "market": "us", "timeframe": "1d"},
+    {"symbol": "AMZN", "market": "us", "timeframe": "1d"},
+    {"symbol": "META", "market": "us", "timeframe": "1d"},
+    {"symbol": "TSLA", "market": "us", "timeframe": "1d"},
+    {"symbol": "AMD", "market": "us", "timeframe": "1d"},
+    {"symbol": "NFLX", "market": "us", "timeframe": "1d"},
+    {"symbol": "QQQ", "market": "us", "timeframe": "1d"},
 ]
 
 REDIS_KEY_AUTO_TRADE = "flashtrade:auto_trade"
