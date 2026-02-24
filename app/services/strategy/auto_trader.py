@@ -104,8 +104,8 @@ class AutoTrader:
     async def get_status(self) -> dict:
         """Get auto-trade status with regime info for all watched symbols.
 
-        Detects regimes on-demand if no cached data exists, so the dashboard
-        always shows useful info even before auto-trade is enabled.
+        Recomputes regime and proximity on-demand if cache is expired.
+        Proximity cache is short (5 min) so dashboard always shows fresh data.
         """
         r = await self._get_redis()
         enabled = await r.get(REDIS_KEY_AUTO_TRADE) == "1"
@@ -114,24 +114,23 @@ class AutoTrader:
         for sym in WATCHED_SYMBOLS:
             regime = await r.get(f"{REDIS_KEY_REGIME_PREFIX}{sym['symbol']}")
             last_signal = await r.get(f"{REDIS_KEY_LAST_SIGNAL_PREFIX}{sym['symbol']}")
+            proximity_raw = await r.get(f"{REDIS_KEY_PROXIMITY_PREFIX}{sym['symbol']}")
 
-            # Detect regime and proximity on-demand if not cached
-            if not regime:
+            # Recompute if regime OR proximity cache is expired
+            if not regime or not proximity_raw:
                 try:
                     df = await self._load_ohlcv(sym["symbol"], sym["timeframe"], lookback_days=60)
                     if df is not None and len(df) >= 30:
                         detected = detect_regime(df)
                         regime = detected.value
                         await r.set(f"{REDIS_KEY_REGIME_PREFIX}{sym['symbol']}", regime, ex=3600)
-                        # Also compute proximity while we have the data
                         strat_name = self._strategy_for_regime(regime).name
                         prox = self._compute_proximity(df, strat_name)
-                        await r.set(f"{REDIS_KEY_PROXIMITY_PREFIX}{sym['symbol']}", json.dumps(prox), ex=3600)
+                        proximity_raw = json.dumps(prox)
+                        await r.set(f"{REDIS_KEY_PROXIMITY_PREFIX}{sym['symbol']}", proximity_raw, ex=300)
                 except Exception:
-                    regime = None
+                    regime = regime or None
 
-            # Load signal proximity data
-            proximity_raw = await r.get(f"{REDIS_KEY_PROXIMITY_PREFIX}{sym['symbol']}")
             proximity = json.loads(proximity_raw) if proximity_raw else None
 
             symbols_status.append({
@@ -186,11 +185,12 @@ class AutoTrader:
         logger.info("Symbol %s using strategy: %s", symbol, strategy.name)
 
         # Compute and cache signal proximity (how close to a buy trigger)
+        # Short TTL (5 min) so dashboard always shows fresh indicator values
         proximity = self._compute_proximity(df, strategy.name)
         await r.set(
             f"{REDIS_KEY_PROXIMITY_PREFIX}{symbol}",
             json.dumps(proximity),
-            ex=3600,
+            ex=300,
         )
 
         # Generate signals
