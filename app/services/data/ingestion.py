@@ -30,7 +30,7 @@ CRYPTO_SYMBOLS = {
     "AVAX/AUD": "AVAX",
     "LINK/AUD": "LINK",
     "DOT/AUD": "DOT",
-    "MATIC/AUD": "MATIC",
+    "POL/AUD": "POL",
 }
 CRYPTO_FALLBACK = {
     "BTC/USDT": "BTC",
@@ -42,7 +42,7 @@ CRYPTO_FALLBACK = {
     "AVAX/USDT": "AVAX",
     "LINK/USDT": "LINK",
     "DOT/USDT": "DOT",
-    "MATIC/USDT": "MATIC",
+    "POL/USDT": "POL",
 }
 ASX_SYMBOLS = [
     "BHP.AX", "CBA.AX", "CSL.AX", "WDS.AX", "FMG.AX",

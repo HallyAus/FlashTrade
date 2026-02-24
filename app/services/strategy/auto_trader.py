@@ -35,7 +35,7 @@ WATCHED_SYMBOLS = [
     {"symbol": "AVAX", "market": "crypto", "timeframe": "1h"},
     {"symbol": "LINK", "market": "crypto", "timeframe": "1h"},
     {"symbol": "DOT", "market": "crypto", "timeframe": "1h"},
-    {"symbol": "MATIC", "market": "crypto", "timeframe": "1h"},
+    {"symbol": "POL", "market": "crypto", "timeframe": "1h"},
     # ASX — blue chips, liquid, good for mean reversion
     {"symbol": "BHP.AX", "market": "asx", "timeframe": "1d"},
     {"symbol": "CBA.AX", "market": "asx", "timeframe": "1d"},
