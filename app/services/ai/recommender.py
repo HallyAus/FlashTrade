@@ -19,7 +19,7 @@ from sqlalchemy import select
 from app.config import settings
 from app.database import async_session
 from app.models.ohlcv import OHLCV
-from app.services.strategy.auto_trader import WATCHED_SYMBOLS
+from app.services.strategy.auto_trader import get_watched_symbols
 from app.services.strategy.indicators import (
     adx,
     atr,
@@ -35,12 +35,12 @@ REDIS_KEY_RECOMMENDATIONS = "flashtrade:recommendations"
 REDIS_KEY_RECOMMENDATIONS_ERROR = "flashtrade:recommendations:last_error"
 
 SYSTEM_PROMPT = """You are a quantitative trading analyst for a small algorithmic trading system.
-You analyze technical indicators and market data for 30 symbols across crypto, ASX stocks, and US stocks.
+You analyze technical indicators and market data across crypto, ASX stocks, and US stocks.
 
-Your job: Identify the best trading opportunities right now and rank them by conviction.
+Your job: Identify the best trading opportunities in EACH market and rank them by conviction.
 
 Rules:
-- Focus on the TOP 5-8 opportunities, not all 30 symbols
+- Provide exactly 5 recommendations for each market: crypto, asx, us (15 total)
 - Each recommendation needs: action (buy/sell/hold/watch), confidence (0.0-1.0), entry/target/stop prices, reasoning, risks
 - Be specific about price levels (in cents) and timeframes
 - Consider the current regime (trending/ranging/volatile) when recommending strategies
@@ -48,6 +48,7 @@ Rules:
 - Factor in existing open positions — avoid recommending buys for symbols already held
 - Be honest when there are no strong setups — "hold cash" is a valid recommendation
 - All prices are in cents (divide by 100 for dollar display)
+- Recommendations can include symbols NOT in the watched list — suggest new opportunities!
 
 Risk constraints:
 - Max $100 per position (10000 cents)
@@ -57,7 +58,7 @@ Risk constraints:
 Respond with ONLY valid JSON matching this exact schema (no markdown, no explanation outside the JSON):
 {
   "market_summary": "2-3 sentence overall market assessment",
-  "top_opportunities": [
+  "crypto_opportunities": [
     {
       "symbol": "BTC",
       "market": "crypto",
@@ -70,6 +71,30 @@ Respond with ONLY valid JSON matching this exact schema (no markdown, no explana
       "reasoning": "Why this trade makes sense (1-2 sentences)",
       "risk_notes": "What could go wrong (1 sentence)",
       "timeframe": "1-3 days"
+    }
+  ],
+  "asx_opportunities": [
+    {
+      "symbol": "BHP.AX",
+      "market": "asx",
+      "action": "watch",
+      "confidence": 0.5,
+      "current_price_cents": 4500,
+      "reasoning": "Reason",
+      "risk_notes": "Risk note",
+      "timeframe": "1-5 days"
+    }
+  ],
+  "us_opportunities": [
+    {
+      "symbol": "AAPL",
+      "market": "us",
+      "action": "buy",
+      "confidence": 0.6,
+      "current_price_cents": 23000,
+      "reasoning": "Reason",
+      "risk_notes": "Risk note",
+      "timeframe": "2-5 days"
     }
   ],
   "symbols_to_avoid": ["DOGE", "WDS.AX"]
@@ -106,6 +131,10 @@ class RecommendationSet(BaseModel):
     model_used: str
     market_summary: str
     top_opportunities: list[Recommendation]
+    crypto_opportunities: list[Recommendation] = Field(default_factory=list)
+    asx_opportunities: list[Recommendation] = Field(default_factory=list)
+    us_opportunities: list[Recommendation] = Field(default_factory=list)
+    market_overview: list[dict] = Field(default_factory=list)
     symbols_to_avoid: list[str] = Field(default_factory=list)
     disclaimer: str = (
         "AI-generated analysis for informational purposes only. "
@@ -138,7 +167,7 @@ class ClaudeRecommender:
 
         response = await client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=2000,
+            max_tokens=4000,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_prompt}],
         )
@@ -159,27 +188,42 @@ class ClaudeRecommender:
             logger.error("Raw response (first 500 chars): %s", raw_text[:500])
             raise ValueError(f"Invalid JSON in Claude response: {e}") from e
 
-        recommendations = []
-        for opp in data.get("top_opportunities", []):
-            recommendations.append(Recommendation(
-                symbol=opp["symbol"],
-                market=opp["market"],
-                action=RecommendationAction(opp["action"]),
-                confidence=opp["confidence"],
-                current_price_cents=opp["current_price_cents"],
-                entry_price_cents=opp.get("entry_price_cents"),
-                target_price_cents=opp.get("target_price_cents"),
-                stop_loss_cents=opp.get("stop_loss_cents"),
-                reasoning=opp["reasoning"],
-                risk_notes=opp["risk_notes"],
-                timeframe=opp.get("timeframe", ""),
-            ))
+        def _parse_opportunities(opps: list[dict]) -> list[Recommendation]:
+            recs = []
+            for opp in opps:
+                recs.append(Recommendation(
+                    symbol=opp["symbol"],
+                    market=opp["market"],
+                    action=RecommendationAction(opp["action"]),
+                    confidence=opp["confidence"],
+                    current_price_cents=opp["current_price_cents"],
+                    entry_price_cents=opp.get("entry_price_cents"),
+                    target_price_cents=opp.get("target_price_cents"),
+                    stop_loss_cents=opp.get("stop_loss_cents"),
+                    reasoning=opp["reasoning"],
+                    risk_notes=opp["risk_notes"],
+                    timeframe=opp.get("timeframe", ""),
+                ))
+            return recs
+
+        crypto_recs = _parse_opportunities(data.get("crypto_opportunities", []))
+        asx_recs = _parse_opportunities(data.get("asx_opportunities", []))
+        us_recs = _parse_opportunities(data.get("us_opportunities", []))
+
+        # Also handle legacy "top_opportunities" if present (backward compat)
+        all_recs = crypto_recs + asx_recs + us_recs
+        if not all_recs:
+            all_recs = _parse_opportunities(data.get("top_opportunities", []))
 
         return RecommendationSet(
             generated_at_utc=datetime.now(timezone.utc).isoformat(),
             model_used="claude-sonnet-4-6",
             market_summary=data.get("market_summary", ""),
-            top_opportunities=recommendations,
+            top_opportunities=all_recs,
+            crypto_opportunities=crypto_recs,
+            asx_opportunities=asx_recs,
+            us_opportunities=us_recs,
+            market_overview=context.get("market_overview", []),
             symbols_to_avoid=data.get("symbols_to_avoid", []),
             token_usage={
                 "input_tokens": response.usage.input_tokens,
@@ -190,9 +234,10 @@ class ClaudeRecommender:
     async def _gather_context(self) -> dict:
         """Build compact market context for Claude prompt."""
         r = aioredis.from_url(settings.redis_url, decode_responses=True, max_connections=5)
+        watched = await get_watched_symbols()
 
         symbols_data = []
-        for sym in WATCHED_SYMBOLS:
+        for sym in watched:
             df = await self._load_ohlcv(sym["symbol"], sym["timeframe"], lookback_days=30)
             if df is None or len(df) < 14:
                 symbols_data.append({
@@ -253,6 +298,7 @@ class ClaudeRecommender:
 
         return {
             "symbols": symbols_data,
+            "market_overview": symbols_data,
             "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -280,7 +326,7 @@ class ClaudeRecommender:
                 f"{adx_str:>5} {s['bb_position']:>12} {s['regime']:<10} {s['last_signal']}"
             )
 
-        lines.append("\nAnalyze these symbols and provide your top recommendations as JSON.")
+        lines.append("\nAnalyze these symbols and provide exactly 5 recommendations per market (crypto, asx, us) as JSON.")
         return "\n".join(lines)
 
     async def _load_ohlcv(

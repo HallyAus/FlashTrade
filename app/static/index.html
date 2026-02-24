@@ -415,6 +415,83 @@
             border-radius: 3px;
         }
 
+        /* Market tabs for recommendations */
+        .rec-tabs {
+            display: flex;
+            gap: 0;
+            margin: 12px 0 8px;
+            border-bottom: 1px solid #21262d;
+        }
+        .rec-tab {
+            padding: 6px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .rec-tab:hover { color: #e1e4e8; }
+        .rec-tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+        .rec-tab .tab-count {
+            font-size: 10px;
+            color: #6b7280;
+            margin-left: 4px;
+        }
+        .rec-section { display: none; }
+        .rec-section.active { display: block; }
+
+        /* Watch/Remove buttons */
+        .btn-watch, .btn-remove {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            border: 1px solid #30363d;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-watch {
+            background: rgba(46,160,67,0.1);
+            color: #3fb950;
+        }
+        .btn-watch:hover { background: rgba(46,160,67,0.25); }
+        .btn-remove {
+            background: rgba(248,81,73,0.1);
+            color: #f85149;
+        }
+        .btn-remove:hover { background: rgba(248,81,73,0.25); }
+
+        /* Add symbol form */
+        .add-symbol-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .add-symbol-form input, .add-symbol-form select {
+            font-size: 12px;
+            padding: 4px 8px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #e1e4e8;
+            border-radius: 4px;
+        }
+        .add-symbol-form input { width: 100px; }
+        .add-symbol-form button {
+            font-size: 11px;
+            padding: 4px 12px;
+            background: #1e2836;
+            border: 1px solid #30363d;
+            color: #58a6ff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .add-symbol-form button:hover { background: #21262d; }
+
         /* Signal log */
         .signal-log {
             margin-top: 12px;
@@ -1026,6 +1103,39 @@
         </div>
 
         <div class="grid">
+            <!-- Market Overview -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>Market Overview
+                        <span id="overview-status" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0;"> -- loading</span>
+                    </span>
+                </div>
+                <div class="filter-tabs" id="overview-filters" style="margin-top:8px;">
+                    <button class="filter-tab active" data-filter="all" onclick="App.setOverviewFilter('all')">All</button>
+                    <button class="filter-tab" data-filter="crypto" onclick="App.setOverviewFilter('crypto')">Crypto</button>
+                    <button class="filter-tab" data-filter="asx" onclick="App.setOverviewFilter('asx')">ASX</button>
+                    <button class="filter-tab" data-filter="us" onclick="App.setOverviewFilter('us')">US</button>
+                </div>
+                <table class="symbols-table" id="overview-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Price</th>
+                            <th>24h%</th>
+                            <th>RSI</th>
+                            <th>MACD</th>
+                            <th>ADX</th>
+                            <th>ATR</th>
+                            <th>BB</th>
+                            <th>Regime</th>
+                        </tr>
+                    </thead>
+                    <tbody id="overview-body">
+                        <tr><td colspan="9" style="color:#6b7280; text-align:center;">Waiting for data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
             <!-- AI Recommendations -->
             <div class="card" style="grid-column: 1 / -1;">
                 <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
@@ -1039,24 +1149,35 @@
                     </button>
                 </div>
                 <div id="rec-summary" style="font-size:13px; color:#9ca3af; margin:8px 0; line-height:1.5;"></div>
-                <table class="symbols-table" id="rec-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Symbol</th>
-                            <th>Action</th>
-                            <th>Confidence</th>
-                            <th>Entry</th>
-                            <th>Target</th>
-                            <th>Stop</th>
-                            <th>Timeframe</th>
-                            <th>Reasoning</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rec-body">
-                        <tr><td colspan="9" style="color:#6b7280; text-align:center;">Waiting for first analysis...</td></tr>
-                    </tbody>
-                </table>
+                <div class="rec-tabs" id="rec-tabs">
+                    <button class="rec-tab active" data-market="crypto" onclick="App.setRecTab('crypto')">Crypto <span class="tab-count" id="rec-count-crypto"></span></button>
+                    <button class="rec-tab" data-market="asx" onclick="App.setRecTab('asx')">ASX <span class="tab-count" id="rec-count-asx"></span></button>
+                    <button class="rec-tab" data-market="us" onclick="App.setRecTab('us')">US <span class="tab-count" id="rec-count-us"></span></button>
+                </div>
+                <div class="rec-section active" id="rec-section-crypto">
+                    <table class="symbols-table"><thead><tr>
+                        <th>#</th><th>Symbol</th><th>Action</th><th>Confidence</th>
+                        <th>Entry</th><th>Target</th><th>Stop</th><th>TF</th><th>Reasoning</th><th></th>
+                    </tr></thead><tbody id="rec-body-crypto">
+                        <tr><td colspan="10" style="color:#6b7280; text-align:center;">Waiting for analysis...</td></tr>
+                    </tbody></table>
+                </div>
+                <div class="rec-section" id="rec-section-asx">
+                    <table class="symbols-table"><thead><tr>
+                        <th>#</th><th>Symbol</th><th>Action</th><th>Confidence</th>
+                        <th>Entry</th><th>Target</th><th>Stop</th><th>TF</th><th>Reasoning</th><th></th>
+                    </tr></thead><tbody id="rec-body-asx">
+                        <tr><td colspan="10" style="color:#6b7280; text-align:center;">Waiting for analysis...</td></tr>
+                    </tbody></table>
+                </div>
+                <div class="rec-section" id="rec-section-us">
+                    <table class="symbols-table"><thead><tr>
+                        <th>#</th><th>Symbol</th><th>Action</th><th>Confidence</th>
+                        <th>Entry</th><th>Target</th><th>Stop</th><th>TF</th><th>Reasoning</th><th></th>
+                    </tr></thead><tbody id="rec-body-us">
+                        <tr><td colspan="10" style="color:#6b7280; text-align:center;">Waiting for analysis...</td></tr>
+                    </tbody></table>
+                </div>
                 <div id="rec-avoid" style="font-size:12px; color:#f85149; margin-top:8px;"></div>
                 <div id="rec-disclaimer" style="font-size:11px; color:#6b7280; margin-top:12px; font-style:italic;"></div>
             </div>
@@ -1189,12 +1310,28 @@
                             <th title="Latest signal: buy/sell/hold">Signal</th>
                             <th title="How close indicators are to triggering a buy signal">Buy Proximity</th>
                             <th title="Candle interval used for analysis">TF</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody id="symbols-body">
-                        <tr><td colspan="6" style="color:#6b7280; text-align:center;">Loading...</td></tr>
+                        <tr><td colspan="7" style="color:#6b7280; text-align:center;">Loading...</td></tr>
                     </tbody>
                 </table>
+                <div class="add-symbol-form">
+                    <input type="text" id="add-symbol-input" placeholder="Symbol" title="e.g., PLTR or BHP.AX">
+                    <select id="add-symbol-market">
+                        <option value="crypto">Crypto</option>
+                        <option value="asx">ASX</option>
+                        <option value="us">US</option>
+                    </select>
+                    <select id="add-symbol-tf">
+                        <option value="1h">1h</option>
+                        <option value="4h">4h</option>
+                        <option value="1d">1d</option>
+                    </select>
+                    <button onclick="App.addSymbol()">Add Symbol</button>
+                    <button onclick="App.resetSymbols()" style="color:#f85149;" title="Reset watchlist to default 30 symbols">Reset Defaults</button>
+                </div>
                 <div class="card-header" style="margin-top:16px;">Trade Log</div>
                 <div class="signal-log" id="signal-log">
                     <div class="signal-entry">
@@ -1456,6 +1593,8 @@
             marketOpen: { crypto: true, asx: false, us: false },
             // Symbol filter for watched table
             symbolFilter: 'all',
+            // Overview filter for market overview table
+            overviewFilter: 'all',
             // Running backtest flag
             isRunningBacktest: false,
         },
@@ -2335,7 +2474,7 @@
                     body.innerHTML = '';
                     const tr = document.createElement('tr');
                     const td = document.createElement('td');
-                    td.colSpan = 6;
+                    td.colSpan = 7;
                     td.style.cssText = 'color:#6b7280; text-align:center;';
                     td.textContent = 'No symbols configured';
                     tr.appendChild(td);
@@ -2442,12 +2581,23 @@
                     tdTF.style.color = '#6b7280';
                     tdTF.textContent = s.timeframe;
 
+                    // Remove button
+                    const tdRemove = document.createElement('td');
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'btn-remove';
+                    removeBtn.textContent = 'x';
+                    removeBtn.title = 'Remove ' + s.symbol + ' from watchlist';
+                    removeBtn.dataset.symbol = s.symbol;
+                    removeBtn.onclick = function() { App.removeSymbol(this.dataset.symbol); };
+                    tdRemove.appendChild(removeBtn);
+
                     tr.appendChild(tdSym);
                     tr.appendChild(tdRegime);
                     tr.appendChild(tdStrategy);
                     tr.appendChild(tdSignal);
                     tr.appendChild(tdProx);
                     tr.appendChild(tdTF);
+                    tr.appendChild(tdRemove);
                     frag.appendChild(tr);
                 }
                 body.innerHTML = '';
@@ -2460,7 +2610,7 @@
                 body.innerHTML = '';
                 const tr = document.createElement('tr');
                 const td = document.createElement('td');
-                td.colSpan = 6;
+                td.colSpan = 7;
                 td.className = 'table-error';
                 td.textContent = 'Failed to load symbols';
                 tr.appendChild(td);
@@ -2835,76 +2985,108 @@
                 statusEl.style.color = data.error ? '#f85149' : '#6b7280';
             }
 
-            var tbody = document.getElementById('rec-body');
-            var opps = data.top_opportunities || [];
-            tbody.innerHTML = '';
+            // Render per-market recommendations
+            var markets = ['crypto', 'asx', 'us'];
+            for (var m = 0; m < markets.length; m++) {
+                var mkt = markets[m];
+                var opps = data[mkt + '_opportunities'] || [];
+                // Fallback: filter top_opportunities by market if per-market arrays are empty
+                if (opps.length === 0 && data.top_opportunities) {
+                    opps = data.top_opportunities.filter(function(o) { return o.market === mkt; });
+                }
+                var countEl = document.getElementById('rec-count-' + mkt);
+                if (countEl) countEl.textContent = '(' + opps.length + ')';
 
-            if (opps.length === 0) {
-                var tr = document.createElement('tr');
-                var td = document.createElement('td');
-                td.colSpan = 9;
-                td.style.cssText = 'color:#6b7280; text-align:center;';
-                td.textContent = data.error || 'No recommendations available yet. Waiting for first hourly analysis.';
-                tr.appendChild(td);
-                tbody.appendChild(tr);
-            } else {
-                for (var i = 0; i < opps.length; i++) {
-                    var opp = opps[i];
+                var tbody = document.getElementById('rec-body-' + mkt);
+                tbody.innerHTML = '';
+
+                if (opps.length === 0) {
                     var tr = document.createElement('tr');
-
-                    var tdRank = document.createElement('td');
-                    tdRank.textContent = '#' + (i + 1);
-                    tdRank.style.color = '#6b7280';
-                    tr.appendChild(tdRank);
-
-                    var tdSym = document.createElement('td');
-                    tdSym.style.fontWeight = '600';
-                    tdSym.textContent = opp.symbol;
-                    tr.appendChild(tdSym);
-
-                    var tdAction = document.createElement('td');
-                    var badge = document.createElement('span');
-                    badge.className = 'rec-action ' + opp.action;
-                    badge.textContent = opp.action.toUpperCase();
-                    tdAction.appendChild(badge);
-                    tr.appendChild(tdAction);
-
-                    var tdConf = document.createElement('td');
-                    var barOuter = document.createElement('span');
-                    barOuter.className = 'confidence-bar';
-                    var barFill = document.createElement('span');
-                    barFill.className = 'confidence-fill';
-                    var pct = Math.round(opp.confidence * 100);
-                    barFill.style.width = pct + '%';
-                    barFill.style.background = pct >= 70 ? '#3fb950' : pct >= 40 ? '#f0883e' : '#f85149';
-                    barOuter.appendChild(barFill);
-                    tdConf.appendChild(barOuter);
-                    tdConf.appendChild(document.createTextNode(' ' + pct + '%'));
-                    tr.appendChild(tdConf);
-
-                    var keys = ['entry_price_cents', 'target_price_cents', 'stop_loss_cents'];
-                    for (var k = 0; k < keys.length; k++) {
-                        var tdPrice = document.createElement('td');
-                        var val = opp[keys[k]];
-                        tdPrice.textContent = val ? '$' + (val / 100).toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '--';
-                        tdPrice.style.fontSize = '12px';
-                        tr.appendChild(tdPrice);
-                    }
-
-                    var tdTf = document.createElement('td');
-                    tdTf.textContent = opp.timeframe || '--';
-                    tdTf.style.fontSize = '12px';
-                    tr.appendChild(tdTf);
-
-                    var tdReason = document.createElement('td');
-                    tdReason.style.cssText = 'font-size:12px; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
-                    tdReason.textContent = opp.reasoning;
-                    tdReason.title = opp.reasoning + '\n\nRisks: ' + (opp.risk_notes || '');
-                    tr.appendChild(tdReason);
-
+                    var td = document.createElement('td');
+                    td.colSpan = 10;
+                    td.style.cssText = 'color:#6b7280; text-align:center;';
+                    td.textContent = data.error || 'No ' + mkt + ' recommendations yet.';
+                    tr.appendChild(td);
                     tbody.appendChild(tr);
+                } else {
+                    for (var i = 0; i < opps.length; i++) {
+                        var opp = opps[i];
+                        var tr = document.createElement('tr');
+
+                        var tdRank = document.createElement('td');
+                        tdRank.textContent = '#' + (i + 1);
+                        tdRank.style.color = '#6b7280';
+                        tr.appendChild(tdRank);
+
+                        var tdSym = document.createElement('td');
+                        tdSym.style.fontWeight = '600';
+                        tdSym.textContent = opp.symbol;
+                        tr.appendChild(tdSym);
+
+                        var tdAction = document.createElement('td');
+                        var badge = document.createElement('span');
+                        badge.className = 'rec-action ' + opp.action;
+                        badge.textContent = opp.action.toUpperCase();
+                        tdAction.appendChild(badge);
+                        tr.appendChild(tdAction);
+
+                        var tdConf = document.createElement('td');
+                        var barOuter = document.createElement('span');
+                        barOuter.className = 'confidence-bar';
+                        var barFill = document.createElement('span');
+                        barFill.className = 'confidence-fill';
+                        var pct = Math.round(opp.confidence * 100);
+                        barFill.style.width = pct + '%';
+                        barFill.style.background = pct >= 70 ? '#3fb950' : pct >= 40 ? '#f0883e' : '#f85149';
+                        barOuter.appendChild(barFill);
+                        tdConf.appendChild(barOuter);
+                        tdConf.appendChild(document.createTextNode(' ' + pct + '%'));
+                        tr.appendChild(tdConf);
+
+                        var keys = ['entry_price_cents', 'target_price_cents', 'stop_loss_cents'];
+                        for (var k = 0; k < keys.length; k++) {
+                            var tdPrice = document.createElement('td');
+                            var val = opp[keys[k]];
+                            tdPrice.textContent = val ? '$' + (val / 100).toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '--';
+                            tdPrice.style.fontSize = '12px';
+                            tr.appendChild(tdPrice);
+                        }
+
+                        var tdTf = document.createElement('td');
+                        tdTf.textContent = opp.timeframe || '--';
+                        tdTf.style.fontSize = '12px';
+                        tr.appendChild(tdTf);
+
+                        var tdReason = document.createElement('td');
+                        tdReason.style.cssText = 'font-size:12px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+                        tdReason.textContent = opp.reasoning;
+                        tdReason.title = opp.reasoning + '\n\nRisks: ' + (opp.risk_notes || '');
+                        tr.appendChild(tdReason);
+
+                        // Watch button
+                        var tdWatch = document.createElement('td');
+                        var watchBtn = document.createElement('button');
+                        watchBtn.className = 'btn-watch';
+                        watchBtn.textContent = 'Watch';
+                        watchBtn.title = 'Add ' + opp.symbol + ' to watched symbols';
+                        watchBtn.dataset.symbol = opp.symbol;
+                        watchBtn.dataset.market = opp.market;
+                        watchBtn.onclick = function() {
+                            var sym = this.dataset.symbol;
+                            var mkt = this.dataset.market;
+                            var tf = mkt === 'crypto' ? '1h' : '1d';
+                            App.addSymbolDirect(sym, mkt, tf);
+                        };
+                        tdWatch.appendChild(watchBtn);
+                        tr.appendChild(tdWatch);
+
+                        tbody.appendChild(tr);
+                    }
                 }
             }
+
+            // Render market overview
+            this.renderMarketOverview(data.market_overview || []);
 
             var avoidEl = document.getElementById('rec-avoid');
             if (data.symbols_to_avoid && data.symbols_to_avoid.length > 0) {
@@ -2914,6 +3096,120 @@
             }
 
             document.getElementById('rec-disclaimer').textContent = data.disclaimer || '';
+        },
+
+        renderMarketOverview(overview) {
+            var tbody = document.getElementById('overview-body');
+            var statusEl = document.getElementById('overview-status');
+            tbody.innerHTML = '';
+
+            if (!overview || overview.length === 0) {
+                var tr = document.createElement('tr');
+                var td = document.createElement('td');
+                td.colSpan = 9;
+                td.style.cssText = 'color:#6b7280; text-align:center;';
+                td.textContent = 'Waiting for first analysis...';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+                return;
+            }
+
+            statusEl.textContent = ' -- ' + overview.length + ' symbols';
+            statusEl.style.color = '#3fb950';
+
+            for (var i = 0; i < overview.length; i++) {
+                var s = overview[i];
+                if (s.data === 'insufficient') continue;
+
+                var tr = document.createElement('tr');
+                tr.dataset.market = s.market;
+
+                var tdSym = document.createElement('td');
+                tdSym.style.fontWeight = '600';
+                var symName = document.createElement('span');
+                symName.textContent = s.symbol;
+                var marketTag = document.createElement('span');
+                marketTag.className = 'symbol-market-tag ' + s.market;
+                marketTag.textContent = s.market;
+                marketTag.style.marginLeft = '6px';
+                tdSym.appendChild(symName);
+                tdSym.appendChild(marketTag);
+                tr.appendChild(tdSym);
+
+                var tdPrice = document.createElement('td');
+                tdPrice.textContent = s.price_cents ? '$' + (s.price_cents / 100).toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '--';
+                tdPrice.style.fontSize = '12px';
+                tr.appendChild(tdPrice);
+
+                var tdChange = document.createElement('td');
+                var changePct = s.change_pct || 0;
+                tdChange.textContent = (changePct >= 0 ? '+' : '') + changePct.toFixed(1) + '%';
+                tdChange.style.color = changePct > 0 ? '#3fb950' : changePct < 0 ? '#f85149' : '#6b7280';
+                tdChange.style.fontSize = '12px';
+                tr.appendChild(tdChange);
+
+                var indicators = [
+                    { val: s.rsi, label: 'RSI', color: s.rsi < 30 ? '#3fb950' : s.rsi > 70 ? '#f85149' : '#e1e4e8' },
+                    { val: s.macd_hist, label: 'MACD' },
+                    { val: s.adx, label: 'ADX' },
+                    { val: s.atr_cents, label: 'ATR' },
+                ];
+                for (var j = 0; j < indicators.length; j++) {
+                    var tdInd = document.createElement('td');
+                    tdInd.style.fontSize = '12px';
+                    if (indicators[j].val != null) {
+                        tdInd.textContent = indicators[j].val;
+                        if (indicators[j].color) tdInd.style.color = indicators[j].color;
+                    } else {
+                        tdInd.textContent = '--';
+                        tdInd.style.color = '#6b7280';
+                    }
+                    tr.appendChild(tdInd);
+                }
+
+                var tdBB = document.createElement('td');
+                tdBB.style.fontSize = '12px';
+                var bbText = (s.bb_position || 'unknown').replace('_', ' ');
+                tdBB.textContent = bbText;
+                tdBB.style.color = bbText === 'below lower' ? '#3fb950' : bbText === 'above upper' ? '#f85149' : '#6b7280';
+                tr.appendChild(tdBB);
+
+                var tdRegime = document.createElement('td');
+                var regimeTag = document.createElement('span');
+                regimeTag.className = 'regime-tag ' + (s.regime || 'unknown');
+                regimeTag.textContent = s.regime || 'unknown';
+                tdRegime.appendChild(regimeTag);
+                tr.appendChild(tdRegime);
+
+                tbody.appendChild(tr);
+            }
+
+            // Apply current filter
+            this.setOverviewFilter(this.state.overviewFilter || 'all');
+        },
+
+        setOverviewFilter(market) {
+            this.state.overviewFilter = market;
+            document.querySelectorAll('#overview-filters .filter-tab').forEach(function(btn) {
+                btn.classList.toggle('active', btn.dataset.filter === market);
+            });
+            var rows = document.querySelectorAll('#overview-body tr');
+            rows.forEach(function(tr) {
+                if (market === 'all' || tr.dataset.market === market) {
+                    tr.style.display = '';
+                } else {
+                    tr.style.display = 'none';
+                }
+            });
+        },
+
+        setRecTab(market) {
+            document.querySelectorAll('.rec-tab').forEach(function(btn) {
+                btn.classList.toggle('active', btn.dataset.market === market);
+            });
+            document.querySelectorAll('.rec-section').forEach(function(sec) {
+                sec.classList.toggle('active', sec.id === 'rec-section-' + market);
+            });
         },
 
         async refreshRecommendations() {
@@ -2938,6 +3234,70 @@
                 btn.textContent = 'Refresh';
                 btn.style.color = '#58a6ff';
                 btn.disabled = false;
+            }
+        },
+
+        // ============================================================
+        // Symbol Management
+        // ============================================================
+        async addSymbol() {
+            var symbol = document.getElementById('add-symbol-input').value.trim().toUpperCase();
+            var market = document.getElementById('add-symbol-market').value;
+            var timeframe = document.getElementById('add-symbol-tf').value;
+
+            if (!symbol) {
+                this.addLog('warn', 'Enter a symbol name');
+                return;
+            }
+
+            await this.addSymbolDirect(symbol, market, timeframe);
+            document.getElementById('add-symbol-input').value = '';
+        },
+
+        async addSymbolDirect(symbol, market, timeframe) {
+            try {
+                var data = await this.api(this.CONFIG.API_BASE + '/api/admin/symbols', {
+                    method: 'POST',
+                    body: JSON.stringify({ symbol: symbol, market: market, timeframe: timeframe }),
+                });
+                if (data.status === 'added') {
+                    this.addLog('info', 'Added ' + symbol + ' to watchlist');
+                    this.state.lastSymbolsHash = '';
+                    this.fetchAutoTradeStatus();
+                } else {
+                    this.addLog('warn', data.message || 'Failed to add symbol');
+                }
+            } catch (err) {
+                this.addLog('warn', 'Add symbol failed: ' + err.message);
+            }
+        },
+
+        async removeSymbol(symbol) {
+            try {
+                var data = await this.api(this.CONFIG.API_BASE + '/api/admin/symbols/' + encodeURIComponent(symbol), {
+                    method: 'DELETE',
+                });
+                if (data.status === 'removed') {
+                    this.addLog('info', 'Removed ' + symbol + ' from watchlist');
+                    this.state.lastSymbolsHash = '';
+                    this.fetchAutoTradeStatus();
+                } else {
+                    this.addLog('warn', data.message || 'Failed to remove symbol');
+                }
+            } catch (err) {
+                this.addLog('warn', 'Remove symbol failed: ' + err.message);
+            }
+        },
+
+        async resetSymbols() {
+            if (!confirm('Reset watchlist to default 30 symbols? This will remove any custom symbols.')) return;
+            try {
+                var data = await this.api(this.CONFIG.API_BASE + '/api/admin/symbols/reset', { method: 'POST' });
+                this.addLog('info', 'Watchlist reset to defaults (' + data.count + ' symbols)');
+                this.state.lastSymbolsHash = '';
+                this.fetchAutoTradeStatus();
+            } catch (err) {
+                this.addLog('warn', 'Reset failed: ' + err.message);
             }
         },
 

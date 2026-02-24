@@ -45,7 +45,7 @@ async def _evaluate_signals_async() -> dict:
     from app.services.data.market_calendar import Market, is_market_open
     from app.services.execution.paper_executor import PaperExecutor
     from app.services.risk_manager import Order
-    from app.services.strategy.auto_trader import AutoTrader, WATCHED_SYMBOLS
+    from app.services.strategy.auto_trader import AutoTrader, get_watched_symbols
 
     trader = AutoTrader()
 
@@ -74,7 +74,8 @@ async def _evaluate_signals_async() -> dict:
     open_positions = await executor.get_positions()
     held_symbols = {p["symbol"] for p in open_positions}
 
-    for sym in WATCHED_SYMBOLS:
+    watched = await get_watched_symbols()
+    for sym in watched:
         try:
             # Skip symbols whose market is closed
             market_enum = Market(sym["market"])
