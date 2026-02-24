@@ -387,6 +387,34 @@
             margin-top: 2px;
         }
 
+        /* Recommendation action badges */
+        .rec-action {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .rec-action.buy { background: rgba(46,160,67,0.15); color: #3fb950; }
+        .rec-action.sell { background: rgba(248,81,73,0.15); color: #f85149; }
+        .rec-action.hold { background: rgba(156,163,175,0.15); color: #9ca3af; }
+        .rec-action.watch { background: rgba(88,166,255,0.15); color: #58a6ff; }
+        .confidence-bar {
+            width: 60px;
+            height: 6px;
+            background: #21262d;
+            border-radius: 3px;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+        .confidence-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+
         /* Signal log */
         .signal-log {
             margin-top: 12px;
@@ -998,6 +1026,41 @@
         </div>
 
         <div class="grid">
+            <!-- AI Recommendations -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>Claude AI Recommendations
+                        <span id="rec-status" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0;"> -- loading</span>
+                    </span>
+                    <button id="btn-refresh-recs"
+                            style="font-size:11px; padding:4px 10px; background:#1e2836; border:1px solid #30363d; color:#58a6ff; border-radius:4px; cursor:pointer;"
+                            title="Trigger immediate refresh of AI recommendations">
+                        Refresh
+                    </button>
+                </div>
+                <div id="rec-summary" style="font-size:13px; color:#9ca3af; margin:8px 0; line-height:1.5;"></div>
+                <table class="symbols-table" id="rec-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Symbol</th>
+                            <th>Action</th>
+                            <th>Confidence</th>
+                            <th>Entry</th>
+                            <th>Target</th>
+                            <th>Stop</th>
+                            <th>Timeframe</th>
+                            <th>Reasoning</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rec-body">
+                        <tr><td colspan="9" style="color:#6b7280; text-align:center;">Waiting for first analysis...</td></tr>
+                    </tbody>
+                </table>
+                <div id="rec-avoid" style="font-size:12px; color:#f85149; margin-top:8px;"></div>
+                <div id="rec-disclaimer" style="font-size:11px; color:#6b7280; margin-top:12px; font-style:italic;"></div>
+            </div>
+
             <div class="card trade-card">
                 <div class="card-header">Trade</div>
                 <div class="trade-form">
@@ -2744,6 +2807,140 @@
         // ============================================================
         // Consolidated Polling
         // ============================================================
+        // ============================================================
+        // AI Recommendations
+        // ============================================================
+        async fetchRecommendations() {
+            try {
+                var data = await this.api(this.CONFIG.API_BASE + '/api/recommendations/');
+                this.renderRecommendations(data);
+            } catch (err) {
+                this.addLog('warn', 'Recommendations fetch failed: ' + err.message);
+            }
+        },
+
+        renderRecommendations(data) {
+            var summaryEl = document.getElementById('rec-summary');
+            summaryEl.textContent = data.market_summary || 'No summary available.';
+
+            var statusEl = document.getElementById('rec-status');
+            if (data.generated_at_utc) {
+                var diff = Date.now() - new Date(data.generated_at_utc).getTime();
+                var mins = Math.floor(diff / 60000);
+                var ago = mins < 1 ? 'just now' : mins < 60 ? mins + 'm ago' : Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm ago';
+                statusEl.textContent = ' -- updated ' + ago;
+                statusEl.style.color = mins < 70 ? '#3fb950' : '#d29922';
+            } else {
+                statusEl.textContent = data.error ? ' -- error' : ' -- waiting';
+                statusEl.style.color = data.error ? '#f85149' : '#6b7280';
+            }
+
+            var tbody = document.getElementById('rec-body');
+            var opps = data.top_opportunities || [];
+            tbody.innerHTML = '';
+
+            if (opps.length === 0) {
+                var tr = document.createElement('tr');
+                var td = document.createElement('td');
+                td.colSpan = 9;
+                td.style.cssText = 'color:#6b7280; text-align:center;';
+                td.textContent = data.error || 'No recommendations available yet. Waiting for first hourly analysis.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+            } else {
+                for (var i = 0; i < opps.length; i++) {
+                    var opp = opps[i];
+                    var tr = document.createElement('tr');
+
+                    var tdRank = document.createElement('td');
+                    tdRank.textContent = '#' + (i + 1);
+                    tdRank.style.color = '#6b7280';
+                    tr.appendChild(tdRank);
+
+                    var tdSym = document.createElement('td');
+                    tdSym.style.fontWeight = '600';
+                    tdSym.textContent = opp.symbol;
+                    tr.appendChild(tdSym);
+
+                    var tdAction = document.createElement('td');
+                    var badge = document.createElement('span');
+                    badge.className = 'rec-action ' + opp.action;
+                    badge.textContent = opp.action.toUpperCase();
+                    tdAction.appendChild(badge);
+                    tr.appendChild(tdAction);
+
+                    var tdConf = document.createElement('td');
+                    var barOuter = document.createElement('span');
+                    barOuter.className = 'confidence-bar';
+                    var barFill = document.createElement('span');
+                    barFill.className = 'confidence-fill';
+                    var pct = Math.round(opp.confidence * 100);
+                    barFill.style.width = pct + '%';
+                    barFill.style.background = pct >= 70 ? '#3fb950' : pct >= 40 ? '#f0883e' : '#f85149';
+                    barOuter.appendChild(barFill);
+                    tdConf.appendChild(barOuter);
+                    tdConf.appendChild(document.createTextNode(' ' + pct + '%'));
+                    tr.appendChild(tdConf);
+
+                    var keys = ['entry_price_cents', 'target_price_cents', 'stop_loss_cents'];
+                    for (var k = 0; k < keys.length; k++) {
+                        var tdPrice = document.createElement('td');
+                        var val = opp[keys[k]];
+                        tdPrice.textContent = val ? '$' + (val / 100).toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '--';
+                        tdPrice.style.fontSize = '12px';
+                        tr.appendChild(tdPrice);
+                    }
+
+                    var tdTf = document.createElement('td');
+                    tdTf.textContent = opp.timeframe || '--';
+                    tdTf.style.fontSize = '12px';
+                    tr.appendChild(tdTf);
+
+                    var tdReason = document.createElement('td');
+                    tdReason.style.cssText = 'font-size:12px; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+                    tdReason.textContent = opp.reasoning;
+                    tdReason.title = opp.reasoning + '\n\nRisks: ' + (opp.risk_notes || '');
+                    tr.appendChild(tdReason);
+
+                    tbody.appendChild(tr);
+                }
+            }
+
+            var avoidEl = document.getElementById('rec-avoid');
+            if (data.symbols_to_avoid && data.symbols_to_avoid.length > 0) {
+                avoidEl.textContent = 'Avoid: ' + data.symbols_to_avoid.join(', ');
+            } else {
+                avoidEl.textContent = '';
+            }
+
+            document.getElementById('rec-disclaimer').textContent = data.disclaimer || '';
+        },
+
+        async refreshRecommendations() {
+            var btn = document.getElementById('btn-refresh-recs');
+            btn.textContent = 'Refreshing...';
+            btn.disabled = true;
+            try {
+                var data = await this.api(this.CONFIG.API_BASE + '/api/recommendations/refresh', { method: 'POST' });
+                this.addLog('info', 'AI recommendations: ' + data.message);
+                btn.textContent = 'Queued';
+                btn.style.color = '#3fb950';
+                // Fetch updated results after a short delay
+                var self = this;
+                setTimeout(function() {
+                    self.fetchRecommendations();
+                    btn.textContent = 'Refresh';
+                    btn.style.color = '#58a6ff';
+                    btn.disabled = false;
+                }, 35000);
+            } catch (err) {
+                this.addLog('warn', 'Refresh failed: ' + err.message);
+                btn.textContent = 'Refresh';
+                btn.style.color = '#58a6ff';
+                btn.disabled = false;
+            }
+        },
+
         startPolling() {
             const self = this;
 
@@ -2760,9 +2957,10 @@
                 self.fetchPrices();
             }, this.CONFIG.POLL_MEDIUM_MS));
 
-            // Slow: 60s — market sessions
+            // Slow: 60s — market sessions + recommendations
             this.state.pollIntervals.push(setInterval(function() {
                 self.fetchMarketStatus();
+                self.fetchRecommendations();
             }, this.CONFIG.POLL_SLOW_MS));
 
             // Very slow: 5min — data quality
@@ -2798,6 +2996,7 @@
             });
             document.getElementById('kill-btn').addEventListener('click', function() { self.killSwitch(); });
             document.getElementById('btn-backfill').addEventListener('click', function() { self.triggerBackfill(); });
+            document.getElementById('btn-refresh-recs').addEventListener('click', function() { self.refreshRecommendations(); });
             document.getElementById('btn-buy').addEventListener('click', function() { self.placeTrade('buy'); });
             document.getElementById('btn-sell').addEventListener('click', function() { self.placeTrade('sell'); });
             document.getElementById('chart-symbol').addEventListener('change', function() { self.loadChart(); });
@@ -2843,6 +3042,7 @@
             this.fetchAutoTradeStatus();
             this.fetchRecentTrades();
             this.fetchDataQuality();
+            this.fetchRecommendations();
             this.updateNextCheck();
 
             // Start polling

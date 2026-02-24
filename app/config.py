@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     # Alerting — Discord/Slack-compatible webhook URL
     alert_webhook_url: str = Field(default="")
 
+    # Claude AI Recommendations
+    anthropic_api_key: str = Field(default="")
+
     # API authentication key for admin/trade endpoints (set in .env)
     api_key: str = Field(default="")
 

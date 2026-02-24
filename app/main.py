@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
-from app.api import admin, dashboard, trades
+from app.api import admin, dashboard, recommendations, trades
 from app.config import settings
 from app.database import engine
 
@@ -63,6 +63,7 @@ app.add_middleware(
 app.include_router(dashboard.router)
 app.include_router(trades.router)
 app.include_router(admin.router)
+app.include_router(recommendations.router)
 
 static_dir = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
