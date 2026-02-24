@@ -79,7 +79,11 @@ class BacktestEngine:
                 f"Run backfill first."
             )
 
-        strategy: BaseStrategy = STRATEGY_MAP[self._strategy_name]()
+        # Auto mode starts with meanrev, switches based on regime detection
+        if self._auto_regime:
+            strategy: BaseStrategy = MeanReversionStrategy()
+        else:
+            strategy = STRATEGY_MAP[self._strategy_name]()
         broker = BacktestBroker(
             starting_cash_cents=self._starting_cash_cents,
             max_position_size_cents=settings.max_position_size_cents,
