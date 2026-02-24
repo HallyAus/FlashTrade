@@ -20,8 +20,7 @@ alpaca-trade-api>=3.0.0
 pandas>=2.2.0
 numpy>=1.26.0
 
-# Backtesting
-backtrader>=1.9.78
+# Backtesting — custom engine using pandas/numpy (no external framework)
 
 # Configuration
 pydantic>=2.5.0

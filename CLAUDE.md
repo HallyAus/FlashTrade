@@ -25,6 +25,11 @@ FlashTrade/
 │   │   │   ├── base.py       # Abstract strategy class
 │   │   │   ├── momentum.py   # RSI + MACD
 │   │   │   └── meanrev.py    # Bollinger Bands
+│   │   ├── backtest/         # Backtesting engine (ADR-007)
+│   │   │   ├── engine.py     # Walk-forward loop + data loading
+│   │   │   ├── broker.py     # Position mgmt, fees, stop-loss sim
+│   │   │   ├── metrics.py    # Sharpe, drawdown, win rate, profit factor
+│   │   │   └── result.py     # BacktestResult + ClosedTrade dataclasses
 │   │   ├── execution/        # Order execution
 │   │   │   ├── alpaca_executor.py
 │   │   │   ├── swyftx_executor.py
@@ -64,6 +69,10 @@ docker compose logs -f trader
 # Run tests
 docker compose exec trader python -m pytest -v
 docker compose exec trader python -m pytest --cov=app --cov-report=term-missing
+
+# Backtesting
+docker compose exec trader python scripts/backtest.py --strategy momentum --symbol BTC --market crypto --timeframe 1h --days 180
+docker compose exec trader python scripts/backtest.py --strategy auto --symbol BHP.AX --market asx --timeframe 1d --days 365
 
 # Linting
 black app/ scripts/ tests/
@@ -137,7 +146,6 @@ ccxt>=4.2.0
 alpaca-trade-api>=3.0.0
 pandas>=2.2.0
 numpy>=1.26.0
-backtrader>=1.9.78
 pydantic-settings>=2.1.0
 httpx>=0.26.0
 ```
