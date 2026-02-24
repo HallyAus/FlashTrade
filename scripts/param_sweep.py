@@ -28,7 +28,7 @@ SYMBOL_INFO = {
     "BTC": ("crypto", "1h"), "ETH": ("crypto", "1h"), "SOL": ("crypto", "1h"),
     "XRP": ("crypto", "1h"), "DOGE": ("crypto", "1h"), "ADA": ("crypto", "1h"),
     "AVAX": ("crypto", "1h"), "LINK": ("crypto", "1h"), "DOT": ("crypto", "1h"),
-    "MATIC": ("crypto", "1h"),
+    "POL": ("crypto", "1h"),
     # ASX
     "BHP.AX": ("asx", "1d"), "CBA.AX": ("asx", "1d"), "CSL.AX": ("asx", "1d"),
     "WDS.AX": ("asx", "1d"), "FMG.AX": ("asx", "1d"), "NAB.AX": ("asx", "1d"),
