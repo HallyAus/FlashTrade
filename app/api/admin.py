@@ -84,7 +84,8 @@ async def trigger_backfill(period: str = "6mo"):
     try:
         results = await backfill_all(period)
         errors = results.pop("_errors", [])
-        total = (results.get("crypto_1h", 0) + results.get("crypto_1d", 0)
+        total = (results.get("crypto_1h", 0) + results.get("crypto_4h", 0)
+                 + results.get("crypto_1d", 0)
                  + results.get("asx_1d", 0) + results.get("asx_1h", 0)
                  + results.get("us_1d", 0) + results.get("us_1h", 0))
         return {

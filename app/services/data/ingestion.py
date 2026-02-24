@@ -224,6 +224,12 @@ async def backfill_all(period: str = "6mo") -> dict:
     results.update({f"{sym}_1h": count for sym, count in crypto_1h.items()})
     errors.extend(crypto_1h_errors)
 
+    logger.info("Backfilling crypto (4h candles, ~%s)...", period)
+    crypto_4h, crypto_4h_errors = await _backfill_crypto("4h", period)
+    results["crypto_4h"] = sum(crypto_4h.values())
+    results.update({f"{sym}_4h": count for sym, count in crypto_4h.items()})
+    errors.extend(crypto_4h_errors)
+
     logger.info("Backfilling crypto (1d candles, ~%s)...", period)
     crypto_1d, crypto_1d_errors = await _backfill_crypto("1d", period)
     results["crypto_1d"] = sum(crypto_1d.values())
@@ -258,7 +264,8 @@ async def backfill_all(period: str = "6mo") -> dict:
     results.update({f"{sym}_1h": count for sym, count in us_1h.items()})
     errors.extend(us_1h_errors)
 
-    category_total = (results.get("crypto_1h", 0) + results.get("crypto_1d", 0)
+    category_total = (results.get("crypto_1h", 0) + results.get("crypto_4h", 0)
+                      + results.get("crypto_1d", 0)
                       + results.get("asx_1d", 0) + results.get("asx_1h", 0)
                       + results.get("us_1d", 0) + results.get("us_1h", 0))
     results["_errors"] = errors  # type: ignore[assignment]
