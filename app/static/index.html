@@ -314,6 +314,7 @@
 
         .symbol-market-tag.crypto { background: rgba(136, 87, 229, 0.2); color: #a371f7; }
         .symbol-market-tag.asx { background: rgba(46, 160, 67, 0.2); color: #3fb950; }
+        .symbol-market-tag.us { background: rgba(88, 166, 255, 0.2); color: #58a6ff; }
 
         .regime-tag {
             font-size: 10px;
@@ -762,6 +763,189 @@
             font-size: 10px;
             font-family: inherit;
         }
+
+        /* Filter tabs (symbols table) */
+        .filter-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .filter-tab {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            color: #9ca3af;
+            padding: 5px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+        .filter-tab:hover { background: #161b22; }
+        .filter-tab.active {
+            background: rgba(88, 166, 255, 0.15);
+            border-color: #58a6ff;
+            color: #58a6ff;
+        }
+
+        /* Price group headers */
+        .price-group-header {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+            margin-top: 16px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #21262d;
+        }
+        .price-group-header:first-child { margin-top: 0; }
+
+        /* Backtest card */
+        .backtest-card { grid-column: 1 / -1; }
+
+        .backtest-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .backtest-form label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .backtest-form select, .backtest-form input {
+            width: 100%;
+            background: #0d1117;
+            border: 1px solid #21262d;
+            color: #e1e4e8;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .backtest-form select:focus, .backtest-form input:focus {
+            border-color: #58a6ff;
+            outline: none;
+        }
+
+        .btn-backtest {
+            padding: 10px 24px;
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            min-height: 44px;
+            background: rgba(88, 166, 255, 0.15);
+            color: #58a6ff;
+            margin-top: 14px;
+        }
+        .btn-backtest:hover:not(:disabled) { background: rgba(88, 166, 255, 0.25); }
+        .btn-backtest:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .bt-metrics {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-top: 16px;
+        }
+        @media (max-width: 900px) {
+            .bt-metrics { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .bt-metrics { grid-template-columns: repeat(2, 1fr); }
+            .backtest-form { grid-template-columns: 1fr; }
+        }
+
+        .bt-metric-card {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+        .bt-metric-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+            margin-bottom: 6px;
+        }
+        .bt-metric-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #e1e4e8;
+        }
+        .bt-metric-value.green { color: #3fb950; }
+        .bt-metric-value.red { color: #f85149; }
+
+        .bt-summary {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #9ca3af;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .bt-trades-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 12px;
+        }
+        .bt-trades-table th {
+            text-align: left;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+            padding: 6px 8px;
+            border-bottom: 1px solid #21262d;
+        }
+        .bt-trades-table td {
+            padding: 8px;
+            border-bottom: 1px solid #161b22;
+        }
+
+        .bt-loading {
+            text-align: center;
+            padding: 24px;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+        .bt-loading .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #21262d;
+            border-top-color: #58a6ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .bt-error {
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: rgba(248, 81, 73, 0.1);
+            color: #f85149;
+            border-radius: 6px;
+            font-size: 13px;
+        }
     </style>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
@@ -820,16 +1004,42 @@
                     <div>
                         <label for="trade-symbol">Symbol</label>
                         <select id="trade-symbol">
-                            <option value="BTC">BTC</option>
-                            <option value="ETH">ETH</option>
-                            <option value="SOL">SOL</option>
-                            <option value="XRP">XRP</option>
-                            <option value="DOGE">DOGE</option>
-                            <option value="BHP.AX">BHP.AX</option>
-                            <option value="CBA.AX">CBA.AX</option>
-                            <option value="CSL.AX">CSL.AX</option>
-                            <option value="WDS.AX">WDS.AX</option>
-                            <option value="FMG.AX">FMG.AX</option>
+                            <optgroup label="Crypto">
+                                <option value="BTC">BTC</option>
+                                <option value="ETH">ETH</option>
+                                <option value="SOL">SOL</option>
+                                <option value="XRP">XRP</option>
+                                <option value="DOGE">DOGE</option>
+                                <option value="ADA">ADA</option>
+                                <option value="AVAX">AVAX</option>
+                                <option value="LINK">LINK</option>
+                                <option value="DOT">DOT</option>
+                                <option value="MATIC">MATIC</option>
+                            </optgroup>
+                            <optgroup label="ASX">
+                                <option value="BHP.AX">BHP.AX</option>
+                                <option value="CBA.AX">CBA.AX</option>
+                                <option value="CSL.AX">CSL.AX</option>
+                                <option value="WDS.AX">WDS.AX</option>
+                                <option value="FMG.AX">FMG.AX</option>
+                                <option value="NAB.AX">NAB.AX</option>
+                                <option value="WBC.AX">WBC.AX</option>
+                                <option value="ANZ.AX">ANZ.AX</option>
+                                <option value="WOW.AX">WOW.AX</option>
+                                <option value="RIO.AX">RIO.AX</option>
+                            </optgroup>
+                            <optgroup label="US">
+                                <option value="AAPL">AAPL</option>
+                                <option value="NVDA">NVDA</option>
+                                <option value="MSFT">MSFT</option>
+                                <option value="GOOGL">GOOGL</option>
+                                <option value="AMZN">AMZN</option>
+                                <option value="META">META</option>
+                                <option value="TSLA">TSLA</option>
+                                <option value="AMD">AMD</option>
+                                <option value="NFLX">NFLX</option>
+                                <option value="QQQ">QQQ</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div>
@@ -899,6 +1109,12 @@
                     <span title="Candle interval used for technical analysis. 1h = hourly bars, 1d = daily bars.">Timeframe = candle size for analysis.</span>
                     <span id="next-check" style="color:#58a6ff;"></span>
                 </div>
+                <div class="filter-tabs" id="symbol-filters">
+                    <button class="filter-tab active" data-filter="all">All</button>
+                    <button class="filter-tab" data-filter="crypto">Crypto</button>
+                    <button class="filter-tab" data-filter="asx">ASX</button>
+                    <button class="filter-tab" data-filter="us">US</button>
+                </div>
                 <table class="symbols-table" id="symbols-table">
                     <thead>
                         <tr>
@@ -927,7 +1143,7 @@
                     Live Prices
                     <span id="prices-status" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0;"> -- loading</span>
                 </div>
-                <div class="price-grid" id="price-grid"></div>
+                <div id="price-grid"></div>
                 <div id="price-errors"></div>
             </div>
 
@@ -935,19 +1151,42 @@
                 <div class="card-header">Chart</div>
                 <div class="chart-controls">
                     <select id="chart-symbol" aria-label="Chart symbol">
-                        <option value="BTC">BTC</option>
-                        <option value="ETH">ETH</option>
-                        <option value="SOL">SOL</option>
-                        <option value="XRP">XRP</option>
-                        <option value="DOGE">DOGE</option>
-                        <option value="BHP.AX">BHP.AX</option>
-                        <option value="CBA.AX">CBA.AX</option>
-                        <option value="CSL.AX">CSL.AX</option>
-                        <option value="WDS.AX">WDS.AX</option>
-                        <option value="FMG.AX">FMG.AX</option>
-                        <option value="SPY">SPY</option>
-                        <option value="AAPL">AAPL</option>
-                        <option value="NVDA">NVDA</option>
+                        <optgroup label="Crypto">
+                            <option value="BTC">BTC</option>
+                            <option value="ETH">ETH</option>
+                            <option value="SOL">SOL</option>
+                            <option value="XRP">XRP</option>
+                            <option value="DOGE">DOGE</option>
+                            <option value="ADA">ADA</option>
+                            <option value="AVAX">AVAX</option>
+                            <option value="LINK">LINK</option>
+                            <option value="DOT">DOT</option>
+                            <option value="MATIC">MATIC</option>
+                        </optgroup>
+                        <optgroup label="ASX">
+                            <option value="BHP.AX">BHP.AX</option>
+                            <option value="CBA.AX">CBA.AX</option>
+                            <option value="CSL.AX">CSL.AX</option>
+                            <option value="WDS.AX">WDS.AX</option>
+                            <option value="FMG.AX">FMG.AX</option>
+                            <option value="NAB.AX">NAB.AX</option>
+                            <option value="WBC.AX">WBC.AX</option>
+                            <option value="ANZ.AX">ANZ.AX</option>
+                            <option value="WOW.AX">WOW.AX</option>
+                            <option value="RIO.AX">RIO.AX</option>
+                        </optgroup>
+                        <optgroup label="US">
+                            <option value="AAPL">AAPL</option>
+                            <option value="NVDA">NVDA</option>
+                            <option value="MSFT">MSFT</option>
+                            <option value="GOOGL">GOOGL</option>
+                            <option value="AMZN">AMZN</option>
+                            <option value="META">META</option>
+                            <option value="TSLA">TSLA</option>
+                            <option value="AMD">AMD</option>
+                            <option value="NFLX">NFLX</option>
+                            <option value="QQQ">QQQ</option>
+                        </optgroup>
                     </select>
                     <button class="tf-btn active" data-tf="1h" aria-pressed="true" aria-label="1 hour timeframe">1H</button>
                     <button class="tf-btn" data-tf="4h" aria-pressed="false" aria-label="4 hour timeframe">4H</button>
@@ -955,6 +1194,109 @@
                     <span id="chart-info" style="font-size:11px; color:#6b7280; margin-left:auto;"></span>
                 </div>
                 <div id="chart-container"></div>
+            </div>
+
+            <div class="card backtest-card">
+                <div class="card-header">Backtest</div>
+                <div class="backtest-form">
+                    <div>
+                        <label for="bt-strategy">Strategy</label>
+                        <select id="bt-strategy">
+                            <option value="momentum">Momentum</option>
+                            <option value="meanrev">Mean Reversion</option>
+                            <option value="auto">Auto (Regime)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="bt-symbol">Symbol</label>
+                        <select id="bt-symbol">
+                            <optgroup label="Crypto">
+                                <option value="BTC">BTC</option>
+                                <option value="ETH">ETH</option>
+                                <option value="SOL">SOL</option>
+                                <option value="XRP">XRP</option>
+                                <option value="DOGE">DOGE</option>
+                                <option value="ADA">ADA</option>
+                                <option value="AVAX">AVAX</option>
+                                <option value="LINK">LINK</option>
+                                <option value="DOT">DOT</option>
+                                <option value="MATIC">MATIC</option>
+                            </optgroup>
+                            <optgroup label="ASX">
+                                <option value="BHP.AX">BHP.AX</option>
+                                <option value="CBA.AX">CBA.AX</option>
+                                <option value="CSL.AX">CSL.AX</option>
+                                <option value="WDS.AX">WDS.AX</option>
+                                <option value="FMG.AX">FMG.AX</option>
+                                <option value="NAB.AX">NAB.AX</option>
+                                <option value="WBC.AX">WBC.AX</option>
+                                <option value="ANZ.AX">ANZ.AX</option>
+                                <option value="WOW.AX">WOW.AX</option>
+                                <option value="RIO.AX">RIO.AX</option>
+                            </optgroup>
+                            <optgroup label="US">
+                                <option value="AAPL">AAPL</option>
+                                <option value="NVDA">NVDA</option>
+                                <option value="MSFT">MSFT</option>
+                                <option value="GOOGL">GOOGL</option>
+                                <option value="AMZN">AMZN</option>
+                                <option value="META">META</option>
+                                <option value="TSLA">TSLA</option>
+                                <option value="AMD">AMD</option>
+                                <option value="NFLX">NFLX</option>
+                                <option value="QQQ">QQQ</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="bt-market">Market</label>
+                        <select id="bt-market">
+                            <option value="crypto">Crypto</option>
+                            <option value="asx">ASX</option>
+                            <option value="us">US</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="bt-timeframe">Timeframe</label>
+                        <select id="bt-timeframe">
+                            <option value="1h">1H</option>
+                            <option value="4h">4H</option>
+                            <option value="1d">1D</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="bt-days">Days</label>
+                        <input type="number" id="bt-days" value="180" min="30" max="730" step="30"
+                               title="How many days of historical data to test against (30-730)">
+                    </div>
+                </div>
+                <button class="btn-backtest" id="btn-backtest">Run Backtest</button>
+                <div id="backtest-loading" class="bt-loading" style="display:none">
+                    <span class="spinner"></span> Running backtest... this may take up to 60 seconds
+                </div>
+                <div id="backtest-error" class="bt-error" style="display:none"></div>
+                <div id="backtest-results" style="display:none">
+                    <div class="bt-metrics" id="bt-metrics"></div>
+                    <div class="bt-summary" id="bt-summary"></div>
+                    <div class="card-header" style="margin-top:16px;">Trade Log</div>
+                    <table class="bt-trades-table">
+                        <thead>
+                            <tr>
+                                <th>Entry</th>
+                                <th>Exit</th>
+                                <th>Entry $</th>
+                                <th>Exit $</th>
+                                <th>Size</th>
+                                <th>P&amp;L</th>
+                                <th>Reason</th>
+                                <th>Bars</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bt-trades-body">
+                            <tr><td colspan="8" style="color:#6b7280; text-align:center;">Run a backtest to see results</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="card markets-card">
@@ -999,7 +1341,7 @@
         </div>
 
         <div class="footer">
-            <span>FlashTrade v0.7.0 &mdash; Day 5 Auto-Trading</span>
+            <span>FlashTrade v0.8.0 &mdash; Day 6 Backtesting</span>
             <span>
                 <a href="https://github.com/HallyAus/FlashTrade" target="_blank">GitHub</a>
                 &nbsp;&middot;&nbsp;
@@ -1045,6 +1387,10 @@
             lastSymbolsHash: '',
             // Market open/closed state keyed by market name
             marketOpen: { crypto: true, asx: false, us: false },
+            // Symbol filter for watched table
+            symbolFilter: 'all',
+            // Running backtest flag
+            isRunningBacktest: false,
         },
 
         // --- Centralized API helper with HTTP status checking ---
@@ -1307,17 +1653,44 @@
                 const errDiv = document.getElementById('price-errors');
                 const status = document.getElementById('prices-status');
 
-                // Clear and rebuild with DOM API (XSS-safe)
+                // Clear and rebuild grouped by market (XSS-safe)
                 grid.innerHTML = '';
                 let count = 0;
-                for (const item of (data.crypto || [])) {
-                    grid.appendChild(this.createPriceCard(item, 'crypto'));
-                    count++;
-                }
+
+                // Split stocks into ASX and US
+                var cryptoItems = data.crypto || [];
+                var asxItems = [];
+                var usItems = [];
                 for (const item of (data.stocks || [])) {
-                    grid.appendChild(this.createPriceCard(item, 'stock'));
-                    count++;
+                    if (item.symbol && item.symbol.endsWith('.AX')) {
+                        asxItems.push(item);
+                    } else {
+                        usItems.push(item);
+                    }
                 }
+
+                var groups = [
+                    { label: 'Crypto', items: cryptoItems, type: 'crypto' },
+                    { label: 'ASX', items: asxItems, type: 'asx' },
+                    { label: 'US', items: usItems, type: 'us' },
+                ];
+
+                for (var g = 0; g < groups.length; g++) {
+                    if (groups[g].items.length === 0) continue;
+                    var header = document.createElement('div');
+                    header.className = 'price-group-header';
+                    header.textContent = groups[g].label + ' (' + groups[g].items.length + ')';
+                    grid.appendChild(header);
+                    var subGrid = document.createElement('div');
+                    subGrid.className = 'price-grid';
+                    subGrid.style.marginTop = '0';
+                    for (var pi = 0; pi < groups[g].items.length; pi++) {
+                        subGrid.appendChild(this.createPriceCard(groups[g].items[pi], groups[g].type));
+                        count++;
+                    }
+                    grid.appendChild(subGrid);
+                }
+
                 if (count === 0) {
                     const empty = document.createElement('div');
                     empty.className = 'price-meta';
@@ -1833,7 +2206,7 @@
         async toggleAutoTrade() {
             const newState = !this.state.autoTradeEnabled;
             const action = newState ? 'ENABLE' : 'DISABLE';
-            if (!confirm(action + ' auto-trading?\n\nThis will ' + (newState ? 'start' : 'stop') + ' automated signal evaluation and order placement for 10 watched symbols.')) return;
+            if (!confirm(action + ' auto-trading?\n\nThis will ' + (newState ? 'start' : 'stop') + ' automated signal evaluation and order placement for 30 watched symbols.')) return;
 
             try {
                 const data = await this.api(`${this.CONFIG.API_BASE}/api/admin/auto-trade`, {
@@ -1906,6 +2279,7 @@
                 const frag = document.createDocumentFragment();
                 for (const s of symbols) {
                     const tr = document.createElement('tr');
+                    tr.dataset.market = s.market;
 
                     // Symbol + market tag
                     const tdSym = document.createElement('td');
@@ -1913,7 +2287,7 @@
                     symName.className = 'symbol-name';
                     symName.textContent = s.symbol;
                     const marketTag = document.createElement('span');
-                    marketTag.className = 'symbol-market-tag ' + (s.market === 'crypto' ? 'crypto' : 'asx');
+                    marketTag.className = 'symbol-market-tag ' + s.market;
                     marketTag.textContent = s.market;
                     tdSym.appendChild(symName);
                     tdSym.appendChild(marketTag);
@@ -2008,6 +2382,8 @@
                 }
                 body.innerHTML = '';
                 body.appendChild(frag);
+                // Re-apply active filter
+                this.setSymbolFilter(this.state.symbolFilter);
             } catch (err) {
                 this.addLog('warn', 'Symbols fetch failed: ' + err.message);
                 const body = document.getElementById('symbols-body');
@@ -2151,6 +2527,201 @@
         },
 
         // ============================================================
+        // Symbol Filter Tabs
+        // ============================================================
+        setSymbolFilter(market) {
+            this.state.symbolFilter = market;
+            // Update active tab
+            document.querySelectorAll('#symbol-filters .filter-tab').forEach(function(btn) {
+                btn.classList.toggle('active', btn.dataset.filter === market);
+            });
+            // Show/hide rows
+            var rows = document.querySelectorAll('#symbols-body tr');
+            rows.forEach(function(tr) {
+                if (market === 'all' || tr.dataset.market === market) {
+                    tr.style.display = '';
+                } else {
+                    tr.style.display = 'none';
+                }
+            });
+        },
+
+        // ============================================================
+        // Backtest
+        // ============================================================
+        CRYPTO_SYMBOLS: ['BTC','ETH','SOL','XRP','DOGE','ADA','AVAX','LINK','DOT','MATIC'],
+
+        detectMarket(symbol) {
+            if (symbol.endsWith('.AX')) return 'asx';
+            if (this.CRYPTO_SYMBOLS.indexOf(symbol) !== -1) return 'crypto';
+            return 'us';
+        },
+
+        async runBacktest() {
+            if (this.state.isRunningBacktest) return;
+
+            var strategy = document.getElementById('bt-strategy').value;
+            var symbol = document.getElementById('bt-symbol').value;
+            var market = document.getElementById('bt-market').value;
+            var timeframe = document.getElementById('bt-timeframe').value;
+            var days = parseInt(document.getElementById('bt-days').value);
+
+            if (isNaN(days) || days < 30 || days > 730) {
+                document.getElementById('backtest-error').textContent = 'Days must be between 30 and 730';
+                document.getElementById('backtest-error').style.display = 'block';
+                return;
+            }
+
+            this.state.isRunningBacktest = true;
+            document.getElementById('btn-backtest').disabled = true;
+            document.getElementById('backtest-loading').style.display = 'block';
+            document.getElementById('backtest-error').style.display = 'none';
+            document.getElementById('backtest-results').style.display = 'none';
+
+            this.addLog('info', 'Running backtest: ' + strategy + ' ' + symbol + ' ' + timeframe + ' ' + days + 'd...');
+
+            try {
+                var data = await this.api(this.CONFIG.API_BASE + '/api/admin/backtest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        strategy: strategy,
+                        symbol: symbol,
+                        market: market,
+                        timeframe: timeframe,
+                        days: days,
+                    }),
+                });
+
+                if (data.status === 'completed' && data.result) {
+                    this.renderBacktestResults(data.result);
+                    this.addLog('ok', 'Backtest done: ' + symbol + ' ' + strategy +
+                        ' return=' + data.result.total_return_pct + '% trades=' + data.result.total_trades);
+                } else {
+                    document.getElementById('backtest-error').textContent = data.message || 'Backtest failed';
+                    document.getElementById('backtest-error').style.display = 'block';
+                    this.addLog('warn', 'Backtest error: ' + (data.message || 'unknown'));
+                }
+            } catch (err) {
+                document.getElementById('backtest-error').textContent = 'Backtest failed: ' + err.message;
+                document.getElementById('backtest-error').style.display = 'block';
+                this.addLog('warn', 'Backtest failed: ' + err.message);
+            } finally {
+                this.state.isRunningBacktest = false;
+                document.getElementById('btn-backtest').disabled = false;
+                document.getElementById('backtest-loading').style.display = 'none';
+            }
+        },
+
+        renderBacktestResults(r) {
+            // Metrics cards
+            var metricsEl = document.getElementById('bt-metrics');
+            metricsEl.innerHTML = '';
+            var metrics = [
+                { label: 'Return', value: (r.total_return_pct >= 0 ? '+' : '') + r.total_return_pct + '%', cls: r.total_return_pct >= 0 ? 'green' : 'red' },
+                { label: 'Sharpe', value: r.sharpe_ratio.toFixed(2), cls: r.sharpe_ratio >= 1 ? 'green' : r.sharpe_ratio >= 0 ? '' : 'red' },
+                { label: 'Max Drawdown', value: r.max_drawdown_pct + '%', cls: 'red' },
+                { label: 'Win Rate', value: r.win_rate_pct + '%', cls: r.win_rate_pct >= 50 ? 'green' : 'red' },
+                { label: 'Trades', value: r.total_trades.toString(), cls: '' },
+                { label: 'Fees', value: 'A$' + (r.total_fees_cents / 100).toFixed(2), cls: '' },
+            ];
+            for (var i = 0; i < metrics.length; i++) {
+                var card = document.createElement('div');
+                card.className = 'bt-metric-card';
+                var lbl = document.createElement('div');
+                lbl.className = 'bt-metric-label';
+                lbl.textContent = metrics[i].label;
+                var val = document.createElement('div');
+                val.className = 'bt-metric-value' + (metrics[i].cls ? ' ' + metrics[i].cls : '');
+                val.textContent = metrics[i].value;
+                card.appendChild(lbl);
+                card.appendChild(val);
+                metricsEl.appendChild(card);
+            }
+
+            // Summary line
+            var summaryEl = document.getElementById('bt-summary');
+            summaryEl.innerHTML = '';
+            var items = [
+                'A$' + (r.starting_cash_cents / 100).toFixed(2) + ' \u2192 A$' + (r.ending_equity_cents / 100).toFixed(2),
+                r.start_date.split('T')[0] + ' to ' + r.end_date.split('T')[0],
+                r.bars_processed + ' bars | ' + r.strategy_name + ' | ' + r.timeframe,
+                'W:' + r.winning_trades + ' L:' + r.losing_trades + ' | PF:' + r.profit_factor,
+            ];
+            for (var j = 0; j < items.length; j++) {
+                var span = document.createElement('span');
+                span.textContent = items[j];
+                summaryEl.appendChild(span);
+            }
+
+            // Trade log table
+            var tbody = document.getElementById('bt-trades-body');
+            tbody.innerHTML = '';
+            var trades = r.trades || [];
+            if (trades.length === 0) {
+                var tr = document.createElement('tr');
+                var td = document.createElement('td');
+                td.colSpan = 8;
+                td.style.cssText = 'color:#6b7280; text-align:center;';
+                td.textContent = 'No trades in this backtest';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+            } else {
+                var shown = trades.slice(-20);
+                var frag = document.createDocumentFragment();
+                for (var k = 0; k < shown.length; k++) {
+                    var t = shown[k];
+                    var row = document.createElement('tr');
+
+                    var tdEntry = document.createElement('td');
+                    tdEntry.textContent = t.entry_time ? t.entry_time.split('T')[0] : '--';
+                    tdEntry.style.color = '#9ca3af';
+
+                    var tdExit = document.createElement('td');
+                    tdExit.textContent = t.exit_time ? t.exit_time.split('T')[0] : '--';
+                    tdExit.style.color = '#9ca3af';
+
+                    var tdEP = document.createElement('td');
+                    tdEP.textContent = 'A$' + (t.entry_price_cents / 100).toFixed(2);
+
+                    var tdXP = document.createElement('td');
+                    tdXP.textContent = 'A$' + (t.exit_price_cents / 100).toFixed(2);
+
+                    var tdSize = document.createElement('td');
+                    tdSize.textContent = 'A$' + (t.quantity_cents / 100).toFixed(2);
+
+                    var tdPnl = document.createElement('td');
+                    var pnl = t.pnl_cents || 0;
+                    var pnlSign = pnl >= 0 ? '+' : '';
+                    tdPnl.textContent = pnlSign + 'A$' + (Math.abs(pnl) / 100).toFixed(2);
+                    tdPnl.style.color = pnl >= 0 ? '#3fb950' : '#f85149';
+                    tdPnl.style.fontWeight = '600';
+
+                    var tdReason = document.createElement('td');
+                    tdReason.textContent = t.exit_reason || '';
+                    tdReason.style.color = '#9ca3af';
+
+                    var tdBars = document.createElement('td');
+                    tdBars.textContent = t.holding_bars;
+                    tdBars.style.color = '#6b7280';
+
+                    row.appendChild(tdEntry);
+                    row.appendChild(tdExit);
+                    row.appendChild(tdEP);
+                    row.appendChild(tdXP);
+                    row.appendChild(tdSize);
+                    row.appendChild(tdPnl);
+                    row.appendChild(tdReason);
+                    row.appendChild(tdBars);
+                    frag.appendChild(row);
+                }
+                tbody.appendChild(frag);
+            }
+
+            document.getElementById('backtest-results').style.display = 'block';
+        },
+
+        // ============================================================
         // Keyboard Shortcuts
         // ============================================================
         handleKeydown(e) {
@@ -2225,6 +2796,18 @@
             document.getElementById('chart-symbol').addEventListener('change', function() { self.loadChart(); });
             document.getElementById('trade-amount').addEventListener('input', function() { self.validateTradeForm(); });
             document.getElementById('trade-sl-pct').addEventListener('input', function() { self.validateTradeForm(); });
+
+            // Symbol filter tabs
+            document.querySelectorAll('#symbol-filters .filter-tab').forEach(function(btn) {
+                btn.addEventListener('click', function() { self.setSymbolFilter(btn.dataset.filter); });
+            });
+
+            // Backtest
+            document.getElementById('btn-backtest').addEventListener('click', function() { self.runBacktest(); });
+            document.getElementById('bt-symbol').addEventListener('change', function() {
+                var market = self.detectMarket(this.value);
+                document.getElementById('bt-market').value = market;
+            });
 
             // Timeframe buttons
             document.querySelectorAll('.tf-btn').forEach(function(btn) {
