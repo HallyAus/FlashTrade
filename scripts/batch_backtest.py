@@ -23,9 +23,9 @@ logger = logging.getLogger(__name__)
 
 # Backtest matrix — same symbols as WATCHED_SYMBOLS in auto_trader.py
 BACKTEST_MATRIX = [
-    # Crypto: 10 symbols × [1h, 1d] (no 4h data backfilled)
+    # Crypto: 10 symbols × [1h, 4h, 1d]
     *[
-        {"symbol": sym, "market": "crypto", "timeframes": ["1h", "1d"]}
+        {"symbol": sym, "market": "crypto", "timeframes": ["1h", "4h", "1d"]}
         for sym in ["BTC", "ETH", "SOL", "XRP", "DOGE", "ADA", "AVAX", "LINK", "DOT", "POL"]
     ],
     # ASX: 10 symbols × [1d] only (yfinance lacks reliable intraday)
