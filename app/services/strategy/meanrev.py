@@ -13,12 +13,26 @@ logger = logging.getLogger(__name__)
 class MeanReversionStrategy(BaseStrategy):
     """Bollinger Band mean reversion strategy.
 
-    Entry (BUY): Price closes below lower band AND RSI < 35.
-    Exit (SELL): Price crosses above middle band.
-    Stop loss: 1.5x ATR below entry.
+    Entry (BUY): Price closes below lower band AND RSI < rsi_oversold.
+    Exit (SELL): Price crosses above middle band, or upper band + RSI > rsi_overbought.
+    Stop loss: atr_stop_multiplier × ATR below entry.
 
     Best suited for RANGING regime (ADX < 20).
     """
+
+    def __init__(
+        self,
+        rsi_oversold: float = 35.0,
+        rsi_overbought: float = 65.0,
+        bb_period: int = 20,
+        bb_std: float = 2.0,
+        atr_stop_multiplier: float = 1.5,
+    ) -> None:
+        self._rsi_oversold = rsi_oversold
+        self._rsi_overbought = rsi_overbought
+        self._bb_period = bb_period
+        self._bb_std = bb_std
+        self._atr_stop_multiplier = atr_stop_multiplier
 
     @property
     def name(self) -> str:
@@ -31,7 +45,9 @@ class MeanReversionStrategy(BaseStrategy):
             return []
 
         close = df["close"]
-        upper, middle, lower, _ = bollinger_bands(close)
+        upper, middle, lower, _ = bollinger_bands(
+            close, period=self._bb_period, std_dev=self._bb_std
+        )
         rsi_values = rsi(close)
         atr_values = atr(df["high"], df["low"], close)
 
@@ -49,9 +65,8 @@ class MeanReversionStrategy(BaseStrategy):
         signals = []
 
         # BUY signal: price below lower band + RSI oversold
-        if current_close < current_lower and current_rsi < 35:
-            stop_loss = int(current_close - 1.5 * current_atr)
-            # Strength based on how far below the band
+        if current_close < current_lower and current_rsi < self._rsi_oversold:
+            stop_loss = int(current_close - self._atr_stop_multiplier * current_atr)
             distance_below = (current_lower - current_close) / current_lower if current_lower > 0 else 0
             strength = min(1.0, distance_below * 10 + 0.3)
             signals.append(
@@ -78,7 +93,6 @@ class MeanReversionStrategy(BaseStrategy):
             )
 
         # SELL signal: price crosses above middle band (take profit)
-        # Stop-loss = current price (closing a long, not opening a short)
         if prev_close < current_middle and current_close >= current_middle:
             stop_loss = current_close
             signals.append(
@@ -100,8 +114,7 @@ class MeanReversionStrategy(BaseStrategy):
             )
 
         # SELL signal: price above upper band (overextended)
-        # Stop-loss = current price (closing a long, not opening a short)
-        if current_close > current_upper and current_rsi > 65:
+        if current_close > current_upper and current_rsi > self._rsi_overbought:
             stop_loss = current_close
             signals.append(
                 Signal(

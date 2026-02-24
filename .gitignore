@@ -43,5 +43,8 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Backtest results (keep .md summaries and .gitkeep)
+results/*.json
+
 # Beads
 .beads/

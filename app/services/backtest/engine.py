@@ -51,6 +51,7 @@ class BacktestEngine:
         days: int = 180,
         starting_cash_cents: int = 1_000_000,
         auto_regime: bool = False,
+        strategy_params: dict | None = None,
     ) -> None:
         self._strategy_name = strategy_name
         self._symbol = symbol
@@ -59,6 +60,7 @@ class BacktestEngine:
         self._days = days
         self._starting_cash_cents = starting_cash_cents
         self._auto_regime = auto_regime
+        self._strategy_params = strategy_params or {}
 
     async def run(self) -> BacktestResult:
         """Execute the backtest.
@@ -81,9 +83,9 @@ class BacktestEngine:
 
         # Auto mode starts with meanrev, switches based on regime detection
         if self._auto_regime:
-            strategy: BaseStrategy = MeanReversionStrategy()
+            strategy: BaseStrategy = MeanReversionStrategy(**self._strategy_params)
         else:
-            strategy = STRATEGY_MAP[self._strategy_name]()
+            strategy = STRATEGY_MAP[self._strategy_name](**self._strategy_params)
         broker = BacktestBroker(
             starting_cash_cents=self._starting_cash_cents,
             max_position_size_cents=settings.max_position_size_cents,
@@ -207,8 +209,8 @@ class BacktestEngine:
     def _strategy_for_regime(self, regime: RegimeType) -> BaseStrategy:
         """Pick strategy based on regime. Same logic as AutoTrader."""
         if regime == RegimeType.TRENDING:
-            return MomentumStrategy()
-        return MeanReversionStrategy()
+            return MomentumStrategy(**self._strategy_params)
+        return MeanReversionStrategy(**self._strategy_params)
 
     def _apply_position_sizing(
         self, signal: Signal, df: pd.DataFrame, portfolio_value_cents: int
