@@ -492,6 +492,16 @@
         }
         .add-symbol-form button:hover { background: #21262d; }
 
+        /* Sortable table headers */
+        th[data-sort] {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        th[data-sort]:hover { color: #58a6ff; }
+        th[data-sort].sort-asc::after { content: ' \25B2'; font-size: 9px; }
+        th[data-sort].sort-desc::after { content: ' \25BC'; font-size: 9px; }
+
         /* Signal log */
         .signal-log {
             margin-top: 12px;
@@ -1109,6 +1119,12 @@
                     <span>Market Overview
                         <span id="overview-status" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0;"> -- loading</span>
                     </span>
+                    <button id="btn-refresh-overview"
+                            style="font-size:11px; padding:4px 10px; background:#1e2836; border:1px solid #30363d; color:#58a6ff; border-radius:4px; cursor:pointer;"
+                            title="Refresh market overview data"
+                            onclick="FT.fetchMarketOverview()">
+                        Refresh
+                    </button>
                 </div>
                 <div class="filter-tabs" id="overview-filters" style="margin-top:8px;">
                     <button class="filter-tab active" data-filter="all" onclick="FT.setOverviewFilter('all')">All</button>
@@ -1119,15 +1135,15 @@
                 <table class="symbols-table" id="overview-table">
                     <thead>
                         <tr>
-                            <th>Symbol</th>
-                            <th>Price</th>
-                            <th>24h%</th>
-                            <th>RSI</th>
-                            <th>MACD</th>
-                            <th>ADX</th>
-                            <th>ATR</th>
-                            <th>BB</th>
-                            <th>Regime</th>
+                            <th data-sort="symbol" data-table="overview">Symbol</th>
+                            <th data-sort="price_cents" data-table="overview">Price</th>
+                            <th data-sort="change_pct" data-table="overview">24h%</th>
+                            <th data-sort="rsi" data-table="overview">RSI</th>
+                            <th data-sort="macd_hist" data-table="overview">MACD</th>
+                            <th data-sort="adx" data-table="overview">ADX</th>
+                            <th data-sort="atr_cents" data-table="overview">ATR</th>
+                            <th data-sort="bb_position" data-table="overview">BB</th>
+                            <th data-sort="regime" data-table="overview">Regime</th>
                         </tr>
                     </thead>
                     <tbody id="overview-body">
@@ -1157,32 +1173,61 @@
                 </div>
                 <div class="rec-section active" id="rec-section-all">
                     <table class="symbols-table"><thead><tr>
-                        <th>#</th><th>Symbol</th><th>Mkt</th><th>Action</th><th>Confidence</th>
-                        <th>Entry</th><th>Target</th><th>Stop</th><th>TF</th><th>Reasoning</th><th></th>
+                        <th>#</th>
+                        <th data-sort="symbol">Symbol</th>
+                        <th data-sort="market">Mkt</th>
+                        <th data-sort="action">Action</th>
+                        <th data-sort="confidence">Confidence</th>
+                        <th data-sort="entry_price_cents">Entry</th>
+                        <th data-sort="target_price_cents">Target</th>
+                        <th data-sort="stop_loss_cents">Stop</th>
+                        <th data-sort="timeframe">TF</th>
+                        <th>Reasoning</th><th></th>
                     </tr></thead><tbody id="rec-body-all">
                         <tr><td colspan="11" style="color:#6b7280; text-align:center;">Waiting for analysis...</td></tr>
                     </tbody></table>
                 </div>
                 <div class="rec-section" id="rec-section-crypto">
                     <table class="symbols-table"><thead><tr>
-                        <th>#</th><th>Symbol</th><th>Action</th><th>Confidence</th>
-                        <th>Entry</th><th>Target</th><th>Stop</th><th>TF</th><th>Reasoning</th><th></th>
+                        <th>#</th>
+                        <th data-sort="symbol">Symbol</th>
+                        <th data-sort="action">Action</th>
+                        <th data-sort="confidence">Confidence</th>
+                        <th data-sort="entry_price_cents">Entry</th>
+                        <th data-sort="target_price_cents">Target</th>
+                        <th data-sort="stop_loss_cents">Stop</th>
+                        <th data-sort="timeframe">TF</th>
+                        <th>Reasoning</th><th></th>
                     </tr></thead><tbody id="rec-body-crypto">
                         <tr><td colspan="10" style="color:#6b7280; text-align:center;">Waiting for analysis...</td></tr>
                     </tbody></table>
                 </div>
                 <div class="rec-section" id="rec-section-asx">
                     <table class="symbols-table"><thead><tr>
-                        <th>#</th><th>Symbol</th><th>Action</th><th>Confidence</th>
-                        <th>Entry</th><th>Target</th><th>Stop</th><th>TF</th><th>Reasoning</th><th></th>
+                        <th>#</th>
+                        <th data-sort="symbol">Symbol</th>
+                        <th data-sort="action">Action</th>
+                        <th data-sort="confidence">Confidence</th>
+                        <th data-sort="entry_price_cents">Entry</th>
+                        <th data-sort="target_price_cents">Target</th>
+                        <th data-sort="stop_loss_cents">Stop</th>
+                        <th data-sort="timeframe">TF</th>
+                        <th>Reasoning</th><th></th>
                     </tr></thead><tbody id="rec-body-asx">
                         <tr><td colspan="10" style="color:#6b7280; text-align:center;">Waiting for analysis...</td></tr>
                     </tbody></table>
                 </div>
                 <div class="rec-section" id="rec-section-us">
                     <table class="symbols-table"><thead><tr>
-                        <th>#</th><th>Symbol</th><th>Action</th><th>Confidence</th>
-                        <th>Entry</th><th>Target</th><th>Stop</th><th>TF</th><th>Reasoning</th><th></th>
+                        <th>#</th>
+                        <th data-sort="symbol">Symbol</th>
+                        <th data-sort="action">Action</th>
+                        <th data-sort="confidence">Confidence</th>
+                        <th data-sort="entry_price_cents">Entry</th>
+                        <th data-sort="target_price_cents">Target</th>
+                        <th data-sort="stop_loss_cents">Stop</th>
+                        <th data-sort="timeframe">TF</th>
+                        <th>Reasoning</th><th></th>
                     </tr></thead><tbody id="rec-body-us">
                         <tr><td colspan="10" style="color:#6b7280; text-align:center;">Waiting for analysis...</td></tr>
                     </tbody></table>
@@ -1289,7 +1334,10 @@
                 <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
                     <span>Watched Symbols
                     <span id="symbols-status" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0;"> -- auto-trade off</span></span>
-                    <button id="btn-backfill" style="font-size:11px; padding:4px 10px; background:#1e2836; border:1px solid #30363d; color:#58a6ff; border-radius:4px; cursor:pointer;" title="Load 6 months of historical price data for all symbols">Backfill Data</button>
+                    <span style="display:flex; gap:6px;">
+                        <button style="font-size:11px; padding:4px 10px; background:#1e2836; border:1px solid #30363d; color:#58a6ff; border-radius:4px; cursor:pointer;" title="Re-evaluate all symbol regimes and signals" onclick="FT.state.lastSymbolsHash=''; FT.fetchAutoTradeStatus();">Refresh</button>
+                        <button id="btn-backfill" style="font-size:11px; padding:4px 10px; background:#1e2836; border:1px solid #30363d; color:#58a6ff; border-radius:4px; cursor:pointer;" title="Load 6 months of historical price data for all symbols">Backfill Data</button>
+                    </span>
                 </div>
                 <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; margin-bottom:4px; font-size:11px; color:#9ca3af;">
                     <span><span class="regime-tag trending" title="Strong directional price movement detected via ADX indicator">Trending</span> Momentum (RSI+MACD)</span>
@@ -2969,6 +3017,15 @@
         // ============================================================
         // AI Recommendations
         // ============================================================
+        async fetchMarketOverview() {
+            try {
+                var data = await this.api(this.CONFIG.API_BASE + '/api/recommendations/overview');
+                this.renderMarketOverview(data.symbols || []);
+            } catch (err) {
+                this.addLog('warn', 'Market overview fetch failed: ' + err.message);
+            }
+        },
+
         async fetchRecommendations() {
             try {
                 var data = await this.api(this.CONFIG.API_BASE + '/api/recommendations/');
@@ -3010,6 +3067,15 @@
                 for (var i = 0; i < opps.length; i++) {
                     var opp = opps[i];
                     var tr = document.createElement('tr');
+                    // Store sort values as data attributes
+                    tr.dataset.sortSymbol = opp.symbol;
+                    tr.dataset.sortMarket = opp.market || '';
+                    tr.dataset.sortAction = opp.action || '';
+                    tr.dataset.sortConfidence = opp.confidence || 0;
+                    tr.dataset.sortEntryPriceCents = opp.entry_price_cents || 0;
+                    tr.dataset.sortTargetPriceCents = opp.target_price_cents || 0;
+                    tr.dataset.sortStopLossCents = opp.stop_loss_cents || 0;
+                    tr.dataset.sortTimeframe = opp.timeframe || '';
 
                     var tdRank = document.createElement('td');
                     tdRank.textContent = '#' + (i + 1);
@@ -3117,9 +3183,6 @@
                 data.error || 'No recommendations available yet. Waiting for first hourly analysis.'
             );
 
-            // Render market overview
-            this.renderMarketOverview(data.market_overview || []);
-
             var avoidEl = document.getElementById('rec-avoid');
             if (data.symbols_to_avoid && data.symbols_to_avoid.length > 0) {
                 avoidEl.textContent = 'Avoid: ' + data.symbols_to_avoid.join(', ');
@@ -3155,6 +3218,16 @@
 
                 var tr = document.createElement('tr');
                 tr.dataset.market = s.market;
+                // Store sort values as data attributes
+                tr.dataset.sortSymbol = s.symbol;
+                tr.dataset.sortPriceCents = s.price_cents || 0;
+                tr.dataset.sortChangePct = s.change_pct || 0;
+                tr.dataset.sortRsi = s.rsi != null ? s.rsi : -1;
+                tr.dataset.sortMacdHist = s.macd_hist != null ? s.macd_hist : -999999;
+                tr.dataset.sortAdx = s.adx != null ? s.adx : -1;
+                tr.dataset.sortAtrCents = s.atr_cents != null ? s.atr_cents : -1;
+                tr.dataset.sortBbPosition = s.bb_position || 'unknown';
+                tr.dataset.sortRegime = s.regime || 'unknown';
 
                 var tdSym = document.createElement('td');
                 tdSym.style.fontWeight = '600';
@@ -3244,6 +3317,53 @@
             });
         },
 
+        sortTable(th) {
+            var sortKey = th.dataset.sort;
+            if (!sortKey) return;
+            var table = th.closest('table');
+            var tbody = table.querySelector('tbody');
+            var rows = Array.from(tbody.querySelectorAll('tr'));
+            if (rows.length <= 1) return;
+
+            // Convert camelCase data-sort key to dataset key: "price_cents" → "sortPriceCents"
+            var dsKey = 'sort' + sortKey.replace(/(^|_)([a-z])/g, function(m, sep, c) { return c.toUpperCase(); });
+
+            // Determine direction — toggle if same column
+            var isAsc = th.classList.contains('sort-asc');
+            // Clear all sort classes on sibling headers
+            th.closest('tr').querySelectorAll('th[data-sort]').forEach(function(h) {
+                h.classList.remove('sort-asc', 'sort-desc');
+            });
+            var dir = isAsc ? 'desc' : 'asc';
+            th.classList.add('sort-' + dir);
+
+            // Numeric keys sort numerically; others alphabetically
+            var numericKeys = ['price_cents', 'change_pct', 'rsi', 'macd_hist', 'adx', 'atr_cents',
+                              'confidence', 'entry_price_cents', 'target_price_cents', 'stop_loss_cents'];
+            var isNumeric = numericKeys.indexOf(sortKey) !== -1;
+
+            rows.sort(function(a, b) {
+                var va = a.dataset[dsKey];
+                var vb = b.dataset[dsKey];
+                if (va === undefined) va = '';
+                if (vb === undefined) vb = '';
+                if (isNumeric) {
+                    va = parseFloat(va) || 0;
+                    vb = parseFloat(vb) || 0;
+                } else {
+                    va = va.toLowerCase();
+                    vb = vb.toLowerCase();
+                }
+                if (va < vb) return dir === 'asc' ? -1 : 1;
+                if (va > vb) return dir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            for (var i = 0; i < rows.length; i++) {
+                tbody.appendChild(rows[i]);
+            }
+        },
+
         async refreshRecommendations() {
             var btn = document.getElementById('btn-refresh-recs');
             btn.textContent = 'Refreshing...';
@@ -3290,6 +3410,7 @@
             try {
                 var data = await this.api(this.CONFIG.API_BASE + '/api/admin/symbols', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ symbol: symbol, market: market, timeframe: timeframe }),
                 });
                 if (data.status === 'added') {
@@ -3349,10 +3470,11 @@
                 self.fetchPrices();
             }, this.CONFIG.POLL_MEDIUM_MS));
 
-            // Slow: 60s — market sessions + recommendations
+            // Slow: 60s — market sessions + recommendations + overview
             this.state.pollIntervals.push(setInterval(function() {
                 self.fetchMarketStatus();
                 self.fetchRecommendations();
+                self.fetchMarketOverview();
             }, this.CONFIG.POLL_SLOW_MS));
 
             // Very slow: 5min — data quality
@@ -3400,6 +3522,12 @@
                 btn.addEventListener('click', function() { self.setSymbolFilter(btn.dataset.filter); });
             });
 
+            // Sortable table headers — delegate clicks on any th[data-sort]
+            document.addEventListener('click', function(e) {
+                var th = e.target.closest('th[data-sort]');
+                if (th) self.sortTable(th);
+            });
+
             // Backtest
             document.getElementById('btn-backtest').addEventListener('click', function() { self.runBacktest(); });
             document.getElementById('bt-symbol').addEventListener('change', function() {
@@ -3435,6 +3563,7 @@
             this.fetchRecentTrades();
             this.fetchDataQuality();
             this.fetchRecommendations();
+            this.fetchMarketOverview();
             this.updateNextCheck();
 
             // Start polling

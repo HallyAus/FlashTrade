@@ -11,6 +11,7 @@ from app.config import settings
 from app.services.ai.recommender import (
     REDIS_KEY_RECOMMENDATIONS,
     REDIS_KEY_RECOMMENDATIONS_ERROR,
+    gather_market_overview,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,21 @@ async def get_recommendations():
             "top_opportunities": [],
             "market_summary": "Error loading recommendations.",
         }
+
+
+@router.get("/overview")
+async def get_market_overview():
+    """Get market overview with technical indicators for all watched symbols.
+
+    Computes RSI, MACD, ADX, ATR, Bollinger position from OHLCV data.
+    Cached in Redis for 5 minutes. No Claude API call needed.
+    """
+    try:
+        overview = await gather_market_overview()
+        return {"symbols": overview, "count": len(overview)}
+    except Exception as e:
+        logger.error("Failed to gather market overview: %s", e)
+        return {"error": str(e), "symbols": []}
 
 
 @router.post("/refresh", dependencies=[Depends(require_api_key)])
