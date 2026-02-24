@@ -57,7 +57,7 @@ def format_report(result: BacktestResult) -> str:
         f"Win Rate: {result.win_rate_pct:.1f}% "
         f"({result.winning_trades}W / {result.losing_trades}L)"
     )
-    lines.append(f"  Profit Factor:          {result.profit_factor:.2f}")
+    lines.append(f"  Profit Factor:          {result.profit_factor:.3f}")
     lines.append(f"  Avg Win:                ${result.avg_win_cents / 100:>8,.2f}")
     lines.append(f"  Avg Loss:               ${result.avg_loss_cents / 100:>8,.2f}")
     lines.append(
