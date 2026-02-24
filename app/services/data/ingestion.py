@@ -26,6 +26,11 @@ CRYPTO_SYMBOLS = {
     "SOL/AUD": "SOL",
     "XRP/AUD": "XRP",
     "DOGE/AUD": "DOGE",
+    "ADA/AUD": "ADA",
+    "AVAX/AUD": "AVAX",
+    "LINK/AUD": "LINK",
+    "DOT/AUD": "DOT",
+    "MATIC/AUD": "MATIC",
 }
 CRYPTO_FALLBACK = {
     "BTC/USDT": "BTC",
@@ -33,9 +38,20 @@ CRYPTO_FALLBACK = {
     "SOL/USDT": "SOL",
     "XRP/USDT": "XRP",
     "DOGE/USDT": "DOGE",
+    "ADA/USDT": "ADA",
+    "AVAX/USDT": "AVAX",
+    "LINK/USDT": "LINK",
+    "DOT/USDT": "DOT",
+    "MATIC/USDT": "MATIC",
 }
-ASX_SYMBOLS = ["BHP.AX", "CBA.AX", "CSL.AX", "WDS.AX", "FMG.AX"]
-US_SYMBOLS = ["SPY", "AAPL", "NVDA"]
+ASX_SYMBOLS = [
+    "BHP.AX", "CBA.AX", "CSL.AX", "WDS.AX", "FMG.AX",
+    "NAB.AX", "WBC.AX", "ANZ.AX", "WOW.AX", "RIO.AX",
+]
+US_SYMBOLS = [
+    "AAPL", "NVDA", "MSFT", "GOOGL", "AMZN",
+    "META", "TSLA", "AMD", "NFLX", "QQQ",
+]
 
 # CCXT timeframe mapping
 TIMEFRAME_MAP = {
