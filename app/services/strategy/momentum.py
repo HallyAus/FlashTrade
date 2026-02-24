@@ -5,7 +5,7 @@ import logging
 import pandas as pd
 
 from app.services.strategy.base import BaseStrategy, Signal
-from app.services.strategy.indicators import atr, macd, rsi
+from app.services.strategy.indicators import atr, ema, macd, rsi, volume_sma
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +25,14 @@ class MomentumStrategy(BaseStrategy):
         rsi_entry: float = 30.0,
         rsi_exit: float = 70.0,
         atr_stop_multiplier: float = 2.0,
+        trend_filter: bool = False,
+        volume_filter: bool = False,
     ) -> None:
         self._rsi_entry = rsi_entry
         self._rsi_exit = rsi_exit
         self._atr_stop_multiplier = atr_stop_multiplier
+        self._trend_filter = trend_filter
+        self._volume_filter = volume_filter
 
     @property
     def name(self) -> str:
@@ -57,8 +61,26 @@ class MomentumStrategy(BaseStrategy):
 
         signals = []
 
+        # Apply filters to gate buy signals
+        buy_filtered = False
+        if self._trend_filter:
+            ema50 = ema(close, period=50)
+            ema200 = ema(close, period=200)
+            if not pd.isna(ema50.iloc[-1]) and not pd.isna(ema200.iloc[-1]):
+                if ema50.iloc[-1] < ema200.iloc[-1]:
+                    buy_filtered = True
+                    logger.debug("Momentum buy filtered: EMA50 < EMA200 (bearish)")
+
+        if self._volume_filter and not buy_filtered and "volume" in df.columns:
+            vol_avg = volume_sma(df["volume"], period=20)
+            if not pd.isna(vol_avg.iloc[-1]) and vol_avg.iloc[-1] > 0:
+                if df["volume"].iloc[-1] < 1.2 * vol_avg.iloc[-1]:
+                    buy_filtered = True
+                    logger.debug("Momentum buy filtered: volume below 1.2x average")
+
         # BUY signal: RSI crosses above entry threshold + MACD histogram turns positive
-        if (prev_rsi < self._rsi_entry and current_rsi >= self._rsi_entry
+        if (not buy_filtered
+                and prev_rsi < self._rsi_entry and current_rsi >= self._rsi_entry
                 and current_hist > 0 and prev_hist <= 0):
             stop_loss = int(current_price - self._atr_stop_multiplier * current_atr)
             strength = min(1.0, (current_hist / current_atr) if current_atr > 0 else 0.5)

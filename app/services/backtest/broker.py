@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 # One-way fee rates per market (applied on both entry and exit)
 FEE_RATES: dict[str, float] = {
-    "crypto": 0.004,  # 0.4% Swyftx spread
+    "crypto": 0.004,  # 0.4% Swyftx spread (taker)
+    "crypto_maker": 0.001,  # 0.1% maker fee (limit orders)
     "asx": 0.001,  # 0.1% brokerage estimate
     "us": 0.001,  # 0.1% Alpaca spread estimate
 }
@@ -65,10 +66,15 @@ class BacktestBroker:
         self,
         starting_cash_cents: int = 1_000_000,
         max_position_size_cents: int = 10_000,
+        cooldown_bars: int = 0,
+        fee_tier: str = "default",
     ) -> None:
         self.cash_cents: int = starting_cash_cents
         self.starting_cash_cents: int = starting_cash_cents
         self.max_position_size_cents = max_position_size_cents
+        self._cooldown_bars = cooldown_bars
+        self._fee_tier = fee_tier
+        self._last_close_bar_index: int = -999
         self._position: _Position | None = None
         self.closed_trades: list[ClosedTrade] = []
         self.equity_curve: list[dict] = []
@@ -126,12 +132,28 @@ class BacktestBroker:
         # 3. Record equity
         self._record_equity(bar_close_cents, bar_time)
 
+    def _get_fee_rate(self, market: str) -> float:
+        """Get the fee rate based on market and fee tier."""
+        if self._fee_tier == "maker" and market == "crypto":
+            return FEE_RATES.get("crypto_maker", 0.001)
+        return FEE_RATES.get(market, 0.001)
+
     def _open_position(
         self, signal: Signal, bar_time: datetime, bar_index: int, market: str
     ) -> None:
         """Open a new position from a buy signal."""
+        # Cooldown check: skip entry if too soon after last close
+        if self._cooldown_bars > 0:
+            bars_since_close = bar_index - self._last_close_bar_index
+            if bars_since_close < self._cooldown_bars:
+                logger.debug(
+                    "Cooldown active: %d bars since last close (need %d)",
+                    bars_since_close, self._cooldown_bars,
+                )
+                return
+
         # Apply entry fee (buying at slightly higher price due to spread)
-        fee_rate = FEE_RATES.get(market, 0.001)
+        fee_rate = self._get_fee_rate(market)
         fill_price = int(signal.price_cents * (1 + fee_rate))
 
         # Position size from signal (already sized by engine)
@@ -173,8 +195,11 @@ class BacktestBroker:
 
         pos = self._position
 
+        # Track last close bar for cooldown
+        self._last_close_bar_index = bar_index
+
         # Apply exit fee (selling at slightly lower price due to spread)
-        fee_rate = FEE_RATES.get(market, 0.001)
+        fee_rate = self._get_fee_rate(market)
         fill_price = int(price_cents * (1 - fee_rate))
 
         # Fee is proportional to position size, not per-unit price

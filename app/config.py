@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     secret_key: str = Field(default="")
     allowed_hosts: str = Field(default="https://trade.printforge.com.au,http://localhost:8000")
 
+    # Alerting — Discord/Slack-compatible webhook URL
+    alert_webhook_url: str = Field(default="")
+
     # API authentication key for admin/trade endpoints (set in .env)
     api_key: str = Field(default="")
 
