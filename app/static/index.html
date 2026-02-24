@@ -1060,6 +1060,8 @@
                             <option value="manual">Manual</option>
                             <option value="momentum">Momentum</option>
                             <option value="meanrev">Mean Reversion</option>
+                            <option value="turtle_crypto">Turtle Crypto</option>
+                            <option value="turtle_stocks">Turtle Stocks</option>
                         </select>
                     </div>
                 </div>
@@ -1204,6 +1206,8 @@
                         <select id="bt-strategy">
                             <option value="momentum">Momentum</option>
                             <option value="meanrev">Mean Reversion</option>
+                            <option value="turtle_crypto">Turtle Crypto</option>
+                            <option value="turtle_stocks">Turtle Stocks</option>
                             <option value="auto">Auto (Regime)</option>
                         </select>
                     </div>
@@ -2356,6 +2360,9 @@
                         detail.className = 'proximity-detail';
                         if (prox.strategy === 'momentum') {
                             detail.textContent = 'RSI ' + (prox.rsi != null ? prox.rsi : '?') + ' | MACD ' + (prox.macd_hist != null ? prox.macd_hist : '?');
+                        } else if (prox.strategy === 'turtle_crypto' || prox.strategy === 'turtle_stocks') {
+                            const bkDist = prox.breakout_dist_pct != null ? prox.breakout_dist_pct + '%' : '?';
+                            detail.textContent = 'DC ' + bkDist + ' | ATR ' + (prox.atr != null ? prox.atr : '?');
                         } else {
                             const bbDist = prox.bb_lower ? ((prox.price - prox.bb_lower) / prox.bb_lower * 100).toFixed(1) : '?';
                             detail.textContent = 'RSI ' + (prox.rsi != null ? prox.rsi : '?') + ' | BB ' + bbDist + '%';

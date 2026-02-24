@@ -118,6 +118,30 @@ def volume_sma(volume: pd.Series, period: int = 20) -> pd.Series:
     return volume.rolling(window=period).mean()
 
 
+def donchian_channel(
+    high: pd.Series,
+    low: pd.Series,
+    period: int = 20,
+) -> tuple[pd.Series, pd.Series, pd.Series]:
+    """Donchian Channel — breakout bands used in Turtle Trading.
+
+    Args:
+        high: High prices in cents.
+        low: Low prices in cents.
+        period: Lookback period (number of bars).
+
+    Returns:
+        Tuple of (upper, lower, middle) where:
+        - upper = highest high over `period` bars
+        - lower = lowest low over `period` bars
+        - middle = (upper + lower) / 2
+    """
+    upper = high.rolling(window=period).max()
+    lower = low.rolling(window=period).min()
+    middle = (upper + lower) / 2
+    return upper, lower, middle
+
+
 def adx(
     high: pd.Series,
     low: pd.Series,

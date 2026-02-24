@@ -102,7 +102,7 @@ async def trigger_backfill(period: str = "6mo"):
 class BacktestRequest(BaseModel):
     """Request body for backtesting via API."""
 
-    strategy: str = Field(..., pattern="^(momentum|meanrev|auto)$")
+    strategy: str = Field(..., pattern="^(momentum|meanrev|turtle_crypto|turtle_stocks|auto)$")
     symbol: str = Field(..., min_length=1, max_length=20)
     market: str = Field(..., pattern="^(crypto|us|asx)$")
     timeframe: str = Field(default="1h", pattern="^(1h|4h|1d)$")

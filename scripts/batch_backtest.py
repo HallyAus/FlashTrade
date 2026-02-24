@@ -130,7 +130,7 @@ def format_summary_table(results: list[dict]) -> str:
 async def run_batch(args: argparse.Namespace) -> None:
     """Run batch backtests across the matrix."""
     strategies = (
-        ["momentum", "meanrev", "auto"] if args.strategy == "all"
+        ["momentum", "meanrev", "turtle_crypto", "turtle_stocks", "auto"] if args.strategy == "all"
         else [args.strategy]
     )
 
@@ -262,8 +262,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--strategy", required=True,
-        choices=["momentum", "meanrev", "auto", "all"],
-        help="Strategy to test (all = run momentum, meanrev, and auto)",
+        choices=["momentum", "meanrev", "turtle_crypto", "turtle_stocks", "auto", "all"],
+        help="Strategy to test (all = run momentum, meanrev, turtle_crypto, turtle_stocks, and auto)",
     )
     parser.add_argument(
         "--market-filter",

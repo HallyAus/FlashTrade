@@ -17,15 +17,18 @@ from app.services.strategy.indicators import atr
 from app.services.strategy.meanrev import MeanReversionStrategy
 from app.services.strategy.momentum import MomentumStrategy
 from app.services.strategy.regime import RegimeType, detect_regime
+from app.services.strategy.turtle import TurtleCryptoStrategy, TurtleStocksStrategy
 
 logger = logging.getLogger(__name__)
 
-# Minimum warmup bars for indicator stability (RSI=14, MACD slow=26, BB=20)
+# Minimum warmup bars for indicator stability (RSI=14, MACD slow=26, BB=20, Donchian=55)
 MIN_WARMUP_BARS = 30
 
 STRATEGY_MAP: dict[str, type[BaseStrategy]] = {
     "momentum": MomentumStrategy,
     "meanrev": MeanReversionStrategy,
+    "turtle_crypto": TurtleCryptoStrategy,
+    "turtle_stocks": TurtleStocksStrategy,
 }
 
 

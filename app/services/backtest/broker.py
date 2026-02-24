@@ -27,6 +27,7 @@ class _Position:
     __slots__ = (
         "symbol", "market", "entry_price_cents", "quantity_cents",
         "stop_loss_cents", "strategy", "entry_time", "entry_bar_index",
+        "pyramid_count",
     )
 
     def __init__(
@@ -48,6 +49,7 @@ class _Position:
         self.strategy = strategy
         self.entry_time = entry_time
         self.entry_bar_index = entry_bar_index
+        self.pyramid_count: int = 1
 
 
 class BacktestBroker:
@@ -128,6 +130,9 @@ class BacktestBroker:
             )
         elif signal is not None and signal.action == "buy" and self._position is None:
             self._open_position(signal, bar_time, bar_index, market)
+        elif signal is not None and signal.action == "buy" and self._position is not None:
+            # Pyramiding: add to existing position (e.g. Turtle Trading)
+            self._add_to_position(signal, bar_time, bar_index, market)
 
         # 3. Record equity
         self._record_equity(bar_close_cents, bar_time)
@@ -179,6 +184,53 @@ class BacktestBroker:
             strategy=signal.strategy_name,
             entry_time=bar_time,
             entry_bar_index=bar_index,
+        )
+
+    def _add_to_position(
+        self, signal: Signal, bar_time: datetime, bar_index: int, market: str
+    ) -> None:
+        """Add to an existing position (pyramiding).
+
+        Calculates weighted-average entry price, adds quantity, and updates
+        the stop-loss from the new signal. Mirrors PaperExecutor._open_or_add_position.
+        """
+        pos = self._position
+        if pos is None:
+            return
+
+        # Apply entry fee
+        fee_rate = self._get_fee_rate(market)
+        fill_price = int(signal.price_cents * (1 + fee_rate))
+
+        add_quantity = signal.indicator_data.get("quantity_cents", 100)
+        add_quantity = min(add_quantity, self.max_position_size_cents)
+        add_quantity = min(add_quantity, self.cash_cents)
+
+        if add_quantity < 100:  # Minimum $1 addition
+            return
+
+        entry_fee_cents = int(add_quantity * fee_rate)
+
+        # Weighted-average entry price
+        old_total = pos.quantity_cents
+        new_total = old_total + add_quantity
+        pos.entry_price_cents = int(
+            (pos.entry_price_cents * old_total + fill_price * add_quantity) / new_total
+        )
+        pos.quantity_cents = new_total
+        pos.pyramid_count += 1
+
+        # Update stop-loss from signal (turtle ratchets stops up)
+        if signal.stop_loss_cents > 0:
+            pos.stop_loss_cents = signal.stop_loss_cents
+
+        self.cash_cents -= add_quantity
+        self.total_fees_cents += entry_fee_cents
+
+        logger.debug(
+            "Pyramid #%d on %s: +%d cents @ %d, new avg entry %d, stop %d",
+            pos.pyramid_count, pos.symbol, add_quantity, fill_price,
+            pos.entry_price_cents, pos.stop_loss_cents,
         )
 
     def _close_position(
