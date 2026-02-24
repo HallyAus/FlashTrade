@@ -133,7 +133,6 @@ class BacktestBroker:
         # Apply entry fee (buying at slightly higher price due to spread)
         fee_rate = FEE_RATES.get(market, 0.001)
         fill_price = int(signal.price_cents * (1 + fee_rate))
-        fee_cents = fill_price - signal.price_cents
 
         # Position size from signal (already sized by engine)
         quantity_cents = signal.indicator_data.get("quantity_cents", 100)
@@ -143,8 +142,11 @@ class BacktestBroker:
         if quantity_cents < 100:  # Minimum $1 position
             return
 
+        # Fee is proportional to position size, not per-unit price
+        entry_fee_cents = int(quantity_cents * fee_rate)
+
         self.cash_cents -= quantity_cents
-        self.total_fees_cents += fee_cents
+        self.total_fees_cents += entry_fee_cents
 
         self._position = _Position(
             symbol=signal.symbol,
@@ -174,7 +176,9 @@ class BacktestBroker:
         # Apply exit fee (selling at slightly lower price due to spread)
         fee_rate = FEE_RATES.get(market, 0.001)
         fill_price = int(price_cents * (1 - fee_rate))
-        fee_cents = price_cents - fill_price
+
+        # Fee is proportional to position size, not per-unit price
+        exit_fee_cents = int(pos.quantity_cents * fee_rate)
 
         # P&L formula matching PaperExecutor: quantity * (exit - entry) / entry
         if pos.entry_price_cents > 0:
@@ -186,7 +190,7 @@ class BacktestBroker:
 
         # Return capital + profit (or minus loss) to cash
         self.cash_cents += pos.quantity_cents + pnl_cents
-        self.total_fees_cents += fee_cents
+        self.total_fees_cents += exit_fee_cents
 
         holding_bars = bar_index - pos.entry_bar_index
 
