@@ -1,9 +1,9 @@
-"""Admin API routes — kill switch, auto-trade control, system status."""
+"""Admin API routes — kill switch, auto-trade control, system status, backtesting."""
 
 import logging
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.api.auth import require_api_key
 from app.services.risk_manager import RiskManager
@@ -97,3 +97,39 @@ async def trigger_backfill(period: str = "6mo"):
     except Exception as e:
         logger.error("Backfill failed: %s", e)
         return {"status": "error", "message": str(e)}
+
+
+class BacktestRequest(BaseModel):
+    """Request body for backtesting via API."""
+
+    strategy: str = Field(..., pattern="^(momentum|meanrev|auto)$")
+    symbol: str = Field(..., min_length=1, max_length=20)
+    market: str = Field(..., pattern="^(crypto|us|asx)$")
+    timeframe: str = Field(default="1h", pattern="^(1h|4h|1d)$")
+    days: int = Field(default=180, ge=30, le=730)
+
+
+@router.post("/backtest", dependencies=[Depends(require_api_key)])
+async def run_backtest(req: BacktestRequest):
+    """Run a backtest and return results as JSON.
+
+    This can take 10-60 seconds depending on data size and timeframe.
+    """
+    from app.services.backtest.engine import BacktestEngine
+
+    try:
+        engine = BacktestEngine(
+            strategy_name=req.strategy,
+            symbol=req.symbol,
+            market=req.market,
+            timeframe=req.timeframe,
+            days=req.days,
+            auto_regime=(req.strategy == "auto"),
+        )
+        result = await engine.run()
+        return {"status": "completed", "result": result.to_dict()}
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+    except Exception as e:
+        logger.error("Backtest failed for %s: %s", req.symbol, e)
+        return {"status": "error", "message": f"Backtest failed: {e}"}
