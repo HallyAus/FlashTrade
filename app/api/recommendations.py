@@ -40,7 +40,7 @@ async def get_recommendations():
         # No cache — auto-trigger generation (with lock to prevent spam)
         if settings.anthropic_api_key:
             r2 = aioredis.from_url(settings.redis_url, decode_responses=True)
-            lock = await r2.set("flashtrade:recs:generating", "1", ex=120, nx=True)
+            lock = await r2.set("flashtrade:recs:generating", "1", ex=600, nx=True)
             await r2.aclose()
             if lock:
                 from app.tasks.recommendation_tasks import generate_recommendations
@@ -107,7 +107,7 @@ async def get_market_news():
         # No cache — auto-trigger first generation (with lock to prevent spam)
         if settings.anthropic_api_key:
             r2 = aioredis.from_url(settings.redis_url, decode_responses=True)
-            lock = await r2.set("flashtrade:news:generating", "1", ex=120, nx=True)
+            lock = await r2.set("flashtrade:news:generating", "1", ex=600, nx=True)
             await r2.aclose()
             if lock:
                 from app.tasks.recommendation_tasks import generate_market_news
