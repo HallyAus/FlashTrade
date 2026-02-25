@@ -1061,6 +1061,73 @@
             border-radius: 6px;
             font-size: 13px;
         }
+        /* Index cards row */
+        .indices-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 16px;
+        }
+        @media (max-width: 900px) { .indices-row { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .indices-row { grid-template-columns: 1fr; } }
+        .index-card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 14px 16px;
+        }
+        .index-card .index-name {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+        }
+        .index-card .index-level {
+            font-size: 22px;
+            font-weight: 700;
+            color: #e1e4e8;
+            margin-top: 2px;
+        }
+        .index-card .index-change {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* News cards row */
+        .news-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 16px;
+        }
+        @media (max-width: 900px) { .news-row { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .news-row { grid-template-columns: 1fr; } }
+        .news-card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .news-card .news-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #58a6ff;
+            margin-bottom: 6px;
+        }
+        .news-card .news-headline {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e1e4e8;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+        .news-card .news-summary {
+            font-size: 12px;
+            color: #9ca3af;
+            line-height: 1.5;
+        }
     </style>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
@@ -1112,6 +1179,54 @@
             </div>
         </div>
 
+        <!-- Market Indices -->
+        <div class="indices-row" id="indices-row">
+            <div class="index-card">
+                <div class="index-name">ASX 200</div>
+                <div class="index-level" id="idx-axjo">--</div>
+                <div class="index-change" id="idx-axjo-chg">--</div>
+            </div>
+            <div class="index-card">
+                <div class="index-name">FTSE 100</div>
+                <div class="index-level" id="idx-ftse">--</div>
+                <div class="index-change" id="idx-ftse-chg">--</div>
+            </div>
+            <div class="index-card">
+                <div class="index-name">NASDAQ</div>
+                <div class="index-level" id="idx-ixic">--</div>
+                <div class="index-change" id="idx-ixic-chg">--</div>
+            </div>
+            <div class="index-card">
+                <div class="index-name">S&amp;P 500</div>
+                <div class="index-level" id="idx-gspc">--</div>
+                <div class="index-change" id="idx-gspc-chg">--</div>
+            </div>
+        </div>
+
+        <!-- Market News -->
+        <div class="news-row" id="news-row">
+            <div class="news-card">
+                <div class="news-label">US Markets</div>
+                <div class="news-headline" id="news-us-headline">Loading...</div>
+                <div class="news-summary" id="news-us-summary"></div>
+            </div>
+            <div class="news-card">
+                <div class="news-label">Global Markets</div>
+                <div class="news-headline" id="news-global-headline">Loading...</div>
+                <div class="news-summary" id="news-global-summary"></div>
+            </div>
+            <div class="news-card">
+                <div class="news-label">Australian Markets</div>
+                <div class="news-headline" id="news-au-headline">Loading...</div>
+                <div class="news-summary" id="news-au-summary"></div>
+            </div>
+            <div class="news-card">
+                <div class="news-label">Notable Events</div>
+                <div class="news-headline" id="news-notable-headline">Loading...</div>
+                <div class="news-summary" id="news-notable-summary"></div>
+            </div>
+        </div>
+
         <div class="grid">
             <!-- Market Overview -->
             <div class="card" style="grid-column: 1 / -1;">
@@ -1131,6 +1246,7 @@
                     <button class="filter-tab" data-filter="crypto" onclick="FT.setOverviewFilter('crypto')">Crypto</button>
                     <button class="filter-tab" data-filter="asx" onclick="FT.setOverviewFilter('asx')">ASX</button>
                     <button class="filter-tab" data-filter="us" onclick="FT.setOverviewFilter('us')">US</button>
+                    <button class="filter-tab" data-filter="uk" onclick="FT.setOverviewFilter('uk')">UK</button>
                 </div>
                 <table class="symbols-table" id="overview-table">
                     <thead>
@@ -1170,6 +1286,7 @@
                     <button class="rec-tab" data-market="crypto" onclick="FT.setRecTab('crypto')">Crypto <span class="tab-count" id="rec-count-crypto"></span></button>
                     <button class="rec-tab" data-market="asx" onclick="FT.setRecTab('asx')">ASX <span class="tab-count" id="rec-count-asx"></span></button>
                     <button class="rec-tab" data-market="us" onclick="FT.setRecTab('us')">US <span class="tab-count" id="rec-count-us"></span></button>
+                    <button class="rec-tab" data-market="uk" onclick="FT.setRecTab('uk')">UK <span class="tab-count" id="rec-count-uk"></span></button>
                 </div>
                 <div class="rec-section active" id="rec-section-all">
                     <table class="symbols-table"><thead><tr>
@@ -1232,6 +1349,21 @@
                         <tr><td colspan="10" style="color:#6b7280; text-align:center;">Waiting for analysis...</td></tr>
                     </tbody></table>
                 </div>
+                <div class="rec-section" id="rec-section-uk">
+                    <table class="symbols-table"><thead><tr>
+                        <th>#</th>
+                        <th data-sort="symbol">Symbol</th>
+                        <th data-sort="action">Action</th>
+                        <th data-sort="confidence">Confidence</th>
+                        <th data-sort="entry_price_cents">Entry</th>
+                        <th data-sort="target_price_cents">Target</th>
+                        <th data-sort="stop_loss_cents">Stop</th>
+                        <th data-sort="timeframe">TF</th>
+                        <th>Reasoning</th><th></th>
+                    </tr></thead><tbody id="rec-body-uk">
+                        <tr><td colspan="10" style="color:#6b7280; text-align:center;">Waiting for analysis...</td></tr>
+                    </tbody></table>
+                </div>
                 <div id="rec-avoid" style="font-size:12px; color:#f85149; margin-top:8px;"></div>
                 <div id="rec-disclaimer" style="font-size:11px; color:#6b7280; margin-top:12px; font-style:italic;"></div>
             </div>
@@ -1277,6 +1409,18 @@
                                 <option value="AMD">AMD</option>
                                 <option value="NFLX">NFLX</option>
                                 <option value="QQQ">QQQ</option>
+                            </optgroup>
+                            <optgroup label="UK">
+                                <option value="SHEL.L">SHEL.L</option>
+                                <option value="AZN.L">AZN.L</option>
+                                <option value="HSBA.L">HSBA.L</option>
+                                <option value="ULVR.L">ULVR.L</option>
+                                <option value="BP.L">BP.L</option>
+                                <option value="GSK.L">GSK.L</option>
+                                <option value="RIO.L">RIO.L</option>
+                                <option value="LSEG.L">LSEG.L</option>
+                                <option value="REL.L">REL.L</option>
+                                <option value="DGE.L">DGE.L</option>
                             </optgroup>
                         </select>
                     </div>
@@ -1357,6 +1501,7 @@
                     <button class="filter-tab" data-filter="crypto">Crypto</button>
                     <button class="filter-tab" data-filter="asx">ASX</button>
                     <button class="filter-tab" data-filter="us">US</button>
+                    <button class="filter-tab" data-filter="uk">UK</button>
                 </div>
                 <table class="symbols-table" id="symbols-table">
                     <thead>
@@ -1380,6 +1525,7 @@
                         <option value="crypto">Crypto</option>
                         <option value="asx">ASX</option>
                         <option value="us">US</option>
+                        <option value="uk">UK</option>
                     </select>
                     <select id="add-symbol-tf">
                         <option value="1h">1h</option>
@@ -2830,6 +2976,7 @@
 
         detectMarket(symbol) {
             if (symbol.endsWith('.AX')) return 'asx';
+            if (symbol.endsWith('.L')) return 'uk';
             if (this.CRYPTO_SYMBOLS.indexOf(symbol) !== -1) return 'crypto';
             return 'us';
         },
@@ -3017,6 +3164,63 @@
         // ============================================================
         // AI Recommendations
         // ============================================================
+        async fetchIndices() {
+            try {
+                var data = await this.api(this.CONFIG.API_BASE + '/api/dashboard/indices');
+                this.renderIndices(data.indices || []);
+            } catch (err) {
+                // silent fail - indices are non-critical
+            }
+        },
+
+        renderIndices(indices) {
+            var idMap = {
+                '^AXJO': 'axjo',
+                '^FTSE': 'ftse',
+                '^IXIC': 'ixic',
+                '^GSPC': 'gspc',
+            };
+            for (var i = 0; i < indices.length; i++) {
+                var idx = indices[i];
+                var key = idMap[idx.symbol];
+                if (!key) continue;
+                var levelEl = document.getElementById('idx-' + key);
+                var chgEl = document.getElementById('idx-' + key + '-chg');
+                if (levelEl) levelEl.textContent = idx.level.toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                if (chgEl) {
+                    chgEl.textContent = (idx.change_pct >= 0 ? '+' : '') + idx.change_pct.toFixed(2) + '%';
+                    chgEl.style.color = idx.change_pct >= 0 ? '#3fb950' : '#f85149';
+                }
+            }
+        },
+
+        async fetchMarketNews() {
+            try {
+                var data = await this.api(this.CONFIG.API_BASE + '/api/recommendations/news');
+                this.renderMarketNews(data);
+            } catch (err) {
+                // silent fail - news is non-critical
+            }
+        },
+
+        renderMarketNews(data) {
+            var pairs = [
+                ['us_news', 'news-us'],
+                ['global_news', 'news-global'],
+                ['australian_news', 'news-au'],
+                ['notable_news', 'news-notable'],
+            ];
+            for (var i = 0; i < pairs.length; i++) {
+                var key = pairs[i][0];
+                var prefix = pairs[i][1];
+                var item = data[key];
+                if (item) {
+                    document.getElementById(prefix + '-headline').textContent = item.headline;
+                    document.getElementById(prefix + '-summary').textContent = item.summary;
+                }
+            }
+        },
+
         async fetchMarketOverview() {
             try {
                 var data = await this.api(this.CONFIG.API_BASE + '/api/recommendations/overview');
@@ -3158,7 +3362,7 @@
 
             // Render per-market recommendations
             var allOpps = [];
-            var markets = ['crypto', 'asx', 'us'];
+            var markets = ['crypto', 'asx', 'us', 'uk'];
             for (var m = 0; m < markets.length; m++) {
                 var mkt = markets[m];
                 var opps = data[mkt + '_opportunities'] || [];
@@ -3475,6 +3679,8 @@
                 self.fetchMarketStatus();
                 self.fetchRecommendations();
                 self.fetchMarketOverview();
+                self.fetchIndices();
+                self.fetchMarketNews();
             }, this.CONFIG.POLL_SLOW_MS));
 
             // Very slow: 5min — data quality
@@ -3564,6 +3770,8 @@
             this.fetchDataQuality();
             this.fetchRecommendations();
             this.fetchMarketOverview();
+            this.fetchIndices();
+            this.fetchMarketNews();
             this.updateNextCheck();
 
             // Start polling

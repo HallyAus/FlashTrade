@@ -72,3 +72,30 @@ async def _generate_async(task) -> dict:
         except Exception:
             pass
         raise task.retry(exc=e)
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=120)
+def generate_market_news(self) -> dict:
+    """Generate AI market news summaries. Runs hourly at :30."""
+    return _run_async(_generate_news_async(self))
+
+
+async def _generate_news_async(task) -> dict:
+    from app.config import settings
+    from app.services.ai.recommender import (
+        generate_market_news as _gen_news,
+        cache_market_news,
+    )
+
+    if not settings.anthropic_api_key:
+        logger.warning("ANTHROPIC_API_KEY not configured, skipping market news")
+        return {"status": "skipped", "reason": "no_api_key"}
+
+    try:
+        news = await _gen_news()
+        await cache_market_news(news)
+        logger.info("Market news generated, tokens: %s", news.token_usage)
+        return {"status": "completed", "tokens": news.token_usage}
+    except Exception as e:
+        logger.error("Market news generation failed: %s", e)
+        raise task.retry(exc=e)

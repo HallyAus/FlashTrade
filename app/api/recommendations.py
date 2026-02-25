@@ -11,6 +11,7 @@ from app.config import settings
 from app.services.ai.recommender import (
     REDIS_KEY_RECOMMENDATIONS,
     REDIS_KEY_RECOMMENDATIONS_ERROR,
+    REDIS_KEY_MARKET_NEWS,
     gather_market_overview,
 )
 
@@ -43,6 +44,7 @@ async def get_recommendations():
             "crypto_opportunities": [],
             "asx_opportunities": [],
             "us_opportunities": [],
+            "uk_opportunities": [],
             "market_overview": [],
             "symbols_to_avoid": [],
             "disclaimer": (
@@ -74,6 +76,32 @@ async def get_market_overview():
     except Exception as e:
         logger.error("Failed to gather market overview: %s", e)
         return {"error": str(e), "symbols": []}
+
+
+@router.get("/news")
+async def get_market_news():
+    """Get AI-generated market news summaries."""
+    try:
+        r = aioredis.from_url(settings.redis_url, decode_responses=True)
+        raw = await r.get(REDIS_KEY_MARKET_NEWS)
+        await r.aclose()
+
+        if raw:
+            data = json.loads(raw)
+            data["cached"] = True
+            return data
+
+        return {
+            "us_news": {"headline": "Loading...", "summary": "Market news will appear after the first hourly analysis."},
+            "global_news": {"headline": "Loading...", "summary": "Market news will appear after the first hourly analysis."},
+            "australian_news": {"headline": "Loading...", "summary": "Market news will appear after the first hourly analysis."},
+            "notable_news": {"headline": "Loading...", "summary": "Market news will appear after the first hourly analysis."},
+            "generated_at_utc": None,
+            "cached": False,
+        }
+    except Exception as e:
+        logger.error("Failed to read market news from Redis: %s", e)
+        return {"error": str(e)}
 
 
 @router.post("/refresh", dependencies=[Depends(require_api_key)])

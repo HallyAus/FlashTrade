@@ -15,6 +15,7 @@ import pandas as pd
 import redis.asyncio as aioredis
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import async_session
@@ -36,14 +37,14 @@ REDIS_KEY_RECOMMENDATIONS_ERROR = "flashtrade:recommendations:last_error"
 REDIS_KEY_MARKET_OVERVIEW = "flashtrade:market_overview"
 
 SYSTEM_PROMPT = """You are a quantitative trading analyst for a small algorithmic trading system.
-You analyze technical indicators and market data across crypto, ASX stocks, and US stocks.
+You analyze technical indicators and market data across crypto, ASX stocks, US stocks, and UK stocks.
 
 Your job: Identify the best trading opportunities in EACH market and rank them by conviction.
 
-CRITICAL: You MUST return EXACTLY 5 items in each of crypto_opportunities, asx_opportunities, and us_opportunities (15 total). No more, no less.
+CRITICAL: You MUST return EXACTLY 5 items in each of crypto_opportunities, asx_opportunities, us_opportunities, and uk_opportunities (20 total). No more, no less.
 
 Rules:
-- Each of the 3 arrays (crypto, asx, us) MUST contain exactly 5 recommendation objects
+- Each of the 4 arrays (crypto, asx, us, uk) MUST contain exactly 5 recommendation objects
 - Use "watch" or "hold" action with lower confidence for weaker setups — but still return 5 per market
 - Each recommendation needs: action (buy/sell/hold/watch), confidence (0.0-1.0), entry/target/stop prices, reasoning, risks
 - Be specific about price levels (in cents) and timeframes
@@ -100,6 +101,18 @@ Respond with ONLY valid JSON matching this exact schema (no markdown, no explana
       "timeframe": "2-5 days"
     }
   ],
+  "uk_opportunities": [
+    {
+      "symbol": "BARC.L",
+      "market": "uk",
+      "action": "watch",
+      "confidence": 0.5,
+      "current_price_cents": 22000,
+      "reasoning": "Reason",
+      "risk_notes": "Risk note",
+      "timeframe": "1-5 days"
+    }
+  ],
   "symbols_to_avoid": ["DOGE", "WDS.AX"]
 }"""
 
@@ -137,6 +150,7 @@ class RecommendationSet(BaseModel):
     crypto_opportunities: list[Recommendation] = Field(default_factory=list)
     asx_opportunities: list[Recommendation] = Field(default_factory=list)
     us_opportunities: list[Recommendation] = Field(default_factory=list)
+    uk_opportunities: list[Recommendation] = Field(default_factory=list)
     market_overview: list[dict] = Field(default_factory=list)
     symbols_to_avoid: list[str] = Field(default_factory=list)
     disclaimer: str = (
@@ -212,9 +226,10 @@ class ClaudeRecommender:
         crypto_recs = _parse_opportunities(data.get("crypto_opportunities", []))
         asx_recs = _parse_opportunities(data.get("asx_opportunities", []))
         us_recs = _parse_opportunities(data.get("us_opportunities", []))
+        uk_recs = _parse_opportunities(data.get("uk_opportunities", []))
 
         # Also handle legacy "top_opportunities" if present (backward compat)
-        all_recs = crypto_recs + asx_recs + us_recs
+        all_recs = crypto_recs + asx_recs + us_recs + uk_recs
         if not all_recs:
             all_recs = _parse_opportunities(data.get("top_opportunities", []))
 
@@ -226,6 +241,7 @@ class ClaudeRecommender:
             crypto_opportunities=crypto_recs,
             asx_opportunities=asx_recs,
             us_opportunities=us_recs,
+            uk_opportunities=uk_recs,
             market_overview=context.get("market_overview", []),
             symbols_to_avoid=data.get("symbols_to_avoid", []),
             token_usage={
@@ -240,62 +256,63 @@ class ClaudeRecommender:
         watched = await get_watched_symbols()
 
         symbols_data = []
-        for sym in watched:
-            df = await self._load_ohlcv(sym["symbol"], sym["timeframe"], lookback_days=30)
-            if df is None or len(df) < 14:
+        async with async_session() as session:
+            for sym in watched:
+                df = await self._load_ohlcv(sym["symbol"], sym["timeframe"], lookback_days=30, session=session)
+                if df is None or len(df) < 14:
+                    symbols_data.append({
+                        "symbol": sym["symbol"],
+                        "market": sym["market"],
+                        "data": "insufficient",
+                    })
+                    continue
+
+                close = df["close"]
+                high = df["high"]
+                low = df["low"]
+                current_price = int(close.iloc[-1])
+                prev_close = int(close.iloc[-2]) if len(close) >= 2 else current_price
+                pct_change = round(
+                    (current_price - prev_close) / prev_close * 100, 2
+                ) if prev_close > 0 else 0.0
+
+                # Compute key indicators using existing functions
+                rsi_val = float(rsi(close).iloc[-1])
+                _, _, macd_hist = macd(close)
+                macd_val = float(macd_hist.iloc[-1])
+                upper, middle, lower, _ = bollinger_bands(close)
+                atr_val = float(atr(high, low, close).iloc[-1])
+                adx_val = float(adx(high, low, close).iloc[-1])
+
+                # Bollinger position
+                cur_lower = float(lower.iloc[-1]) if not pd.isna(lower.iloc[-1]) else 0
+                cur_upper = float(upper.iloc[-1]) if not pd.isna(upper.iloc[-1]) else 0
+                if pd.isna(rsi_val) or pd.isna(macd_val):
+                    bb_pos = "unknown"
+                elif current_price < cur_lower:
+                    bb_pos = "below_lower"
+                elif current_price > cur_upper:
+                    bb_pos = "above_upper"
+                else:
+                    bb_pos = "within"
+
+                # Read cached regime and signal from Redis
+                regime = await r.get(f"flashtrade:regime:{sym['symbol']}") or "unknown"
+                last_signal = await r.get(f"flashtrade:signal:{sym['symbol']}") or "hold"
+
                 symbols_data.append({
                     "symbol": sym["symbol"],
                     "market": sym["market"],
-                    "data": "insufficient",
+                    "price_cents": current_price,
+                    "change_pct": pct_change,
+                    "rsi": round(rsi_val, 1) if not pd.isna(rsi_val) else None,
+                    "macd_hist": round(macd_val, 0) if not pd.isna(macd_val) else None,
+                    "adx": round(adx_val, 1) if not pd.isna(adx_val) else None,
+                    "atr_cents": round(atr_val, 0) if not pd.isna(atr_val) else None,
+                    "bb_position": bb_pos,
+                    "regime": regime,
+                    "last_signal": last_signal,
                 })
-                continue
-
-            close = df["close"]
-            high = df["high"]
-            low = df["low"]
-            current_price = int(close.iloc[-1])
-            prev_close = int(close.iloc[-2]) if len(close) >= 2 else current_price
-            pct_change = round(
-                (current_price - prev_close) / prev_close * 100, 2
-            ) if prev_close > 0 else 0.0
-
-            # Compute key indicators using existing functions
-            rsi_val = float(rsi(close).iloc[-1])
-            _, _, macd_hist = macd(close)
-            macd_val = float(macd_hist.iloc[-1])
-            upper, middle, lower, _ = bollinger_bands(close)
-            atr_val = float(atr(high, low, close).iloc[-1])
-            adx_val = float(adx(high, low, close).iloc[-1])
-
-            # Bollinger position
-            cur_lower = float(lower.iloc[-1]) if not pd.isna(lower.iloc[-1]) else 0
-            cur_upper = float(upper.iloc[-1]) if not pd.isna(upper.iloc[-1]) else 0
-            if pd.isna(rsi_val) or pd.isna(macd_val):
-                bb_pos = "unknown"
-            elif current_price < cur_lower:
-                bb_pos = "below_lower"
-            elif current_price > cur_upper:
-                bb_pos = "above_upper"
-            else:
-                bb_pos = "within"
-
-            # Read cached regime and signal from Redis
-            regime = await r.get(f"flashtrade:regime:{sym['symbol']}") or "unknown"
-            last_signal = await r.get(f"flashtrade:signal:{sym['symbol']}") or "hold"
-
-            symbols_data.append({
-                "symbol": sym["symbol"],
-                "market": sym["market"],
-                "price_cents": current_price,
-                "change_pct": pct_change,
-                "rsi": round(rsi_val, 1) if not pd.isna(rsi_val) else None,
-                "macd_hist": round(macd_val, 0) if not pd.isna(macd_val) else None,
-                "adx": round(adx_val, 1) if not pd.isna(adx_val) else None,
-                "atr_cents": round(atr_val, 0) if not pd.isna(atr_val) else None,
-                "bb_position": bb_pos,
-                "regime": regime,
-                "last_signal": last_signal,
-            })
 
         await r.aclose()
 
@@ -329,27 +346,32 @@ class ClaudeRecommender:
                 f"{adx_str:>5} {s['bb_position']:>12} {s['regime']:<10} {s['last_signal']}"
             )
 
-        lines.append("\nAnalyze these symbols and provide exactly 5 recommendations per market (crypto, asx, us) as JSON.")
+        lines.append("\nAnalyze these symbols and provide exactly 5 recommendations per market (crypto, asx, us, uk) as JSON.")
         return "\n".join(lines)
 
     async def _load_ohlcv(
-        self, symbol: str, timeframe: str, lookback_days: int = 30
+        self, symbol: str, timeframe: str, lookback_days: int = 30,
+        session: AsyncSession | None = None,
     ) -> pd.DataFrame | None:
         """Load OHLCV data from database into a pandas DataFrame."""
         cutoff = datetime.now(timezone.utc) - timedelta(days=lookback_days)
 
-        async with async_session() as session:
+        async def _query(sess):
             stmt = (
-                select(OHLCV)
-                .where(
+                select(OHLCV).where(
                     OHLCV.symbol == symbol,
                     OHLCV.timeframe == timeframe,
                     OHLCV.timestamp >= cutoff,
-                )
-                .order_by(OHLCV.timestamp.asc())
+                ).order_by(OHLCV.timestamp.asc())
             )
-            result = await session.execute(stmt)
-            rows = result.scalars().all()
+            result = await sess.execute(stmt)
+            return result.scalars().all()
+
+        if session is not None:
+            rows = await _query(session)
+        else:
+            async with async_session() as sess:
+                rows = await _query(sess)
 
         if not rows:
             return None
@@ -392,59 +414,60 @@ async def gather_market_overview() -> list[dict]:
     watched = await get_watched_symbols(redis_conn=r)
     symbols_data = []
 
-    for sym in watched:
-        df = await _load_ohlcv_standalone(sym["symbol"], sym["timeframe"], lookback_days=30)
-        if df is None or len(df) < 14:
+    async with async_session() as session:  # ONE session for all queries
+        for sym in watched:
+            df = await _load_ohlcv_standalone(sym["symbol"], sym["timeframe"], lookback_days=30, session=session)
+            if df is None or len(df) < 14:
+                symbols_data.append({
+                    "symbol": sym["symbol"],
+                    "market": sym["market"],
+                    "data": "insufficient",
+                })
+                continue
+
+            close = df["close"]
+            high = df["high"]
+            low = df["low"]
+            current_price = int(close.iloc[-1])
+            prev_close = int(close.iloc[-2]) if len(close) >= 2 else current_price
+            pct_change = round(
+                (current_price - prev_close) / prev_close * 100, 2
+            ) if prev_close > 0 else 0.0
+
+            rsi_val = float(rsi(close).iloc[-1])
+            _, _, macd_hist = macd(close)
+            macd_val = float(macd_hist.iloc[-1])
+            upper, middle, lower, _ = bollinger_bands(close)
+            atr_val = float(atr(high, low, close).iloc[-1])
+            adx_val = float(adx(high, low, close).iloc[-1])
+
+            cur_lower = float(lower.iloc[-1]) if not pd.isna(lower.iloc[-1]) else 0
+            cur_upper = float(upper.iloc[-1]) if not pd.isna(upper.iloc[-1]) else 0
+            if pd.isna(rsi_val) or pd.isna(macd_val):
+                bb_pos = "unknown"
+            elif current_price < cur_lower:
+                bb_pos = "below_lower"
+            elif current_price > cur_upper:
+                bb_pos = "above_upper"
+            else:
+                bb_pos = "within"
+
+            regime = await r.get(f"flashtrade:regime:{sym['symbol']}") or "unknown"
+            last_signal = await r.get(f"flashtrade:signal:{sym['symbol']}") or "hold"
+
             symbols_data.append({
                 "symbol": sym["symbol"],
                 "market": sym["market"],
-                "data": "insufficient",
+                "price_cents": current_price,
+                "change_pct": pct_change,
+                "rsi": round(rsi_val, 1) if not pd.isna(rsi_val) else None,
+                "macd_hist": round(macd_val, 0) if not pd.isna(macd_val) else None,
+                "adx": round(adx_val, 1) if not pd.isna(adx_val) else None,
+                "atr_cents": round(atr_val, 0) if not pd.isna(atr_val) else None,
+                "bb_position": bb_pos,
+                "regime": regime,
+                "last_signal": last_signal,
             })
-            continue
-
-        close = df["close"]
-        high = df["high"]
-        low = df["low"]
-        current_price = int(close.iloc[-1])
-        prev_close = int(close.iloc[-2]) if len(close) >= 2 else current_price
-        pct_change = round(
-            (current_price - prev_close) / prev_close * 100, 2
-        ) if prev_close > 0 else 0.0
-
-        rsi_val = float(rsi(close).iloc[-1])
-        _, _, macd_hist = macd(close)
-        macd_val = float(macd_hist.iloc[-1])
-        upper, middle, lower, _ = bollinger_bands(close)
-        atr_val = float(atr(high, low, close).iloc[-1])
-        adx_val = float(adx(high, low, close).iloc[-1])
-
-        cur_lower = float(lower.iloc[-1]) if not pd.isna(lower.iloc[-1]) else 0
-        cur_upper = float(upper.iloc[-1]) if not pd.isna(upper.iloc[-1]) else 0
-        if pd.isna(rsi_val) or pd.isna(macd_val):
-            bb_pos = "unknown"
-        elif current_price < cur_lower:
-            bb_pos = "below_lower"
-        elif current_price > cur_upper:
-            bb_pos = "above_upper"
-        else:
-            bb_pos = "within"
-
-        regime = await r.get(f"flashtrade:regime:{sym['symbol']}") or "unknown"
-        last_signal = await r.get(f"flashtrade:signal:{sym['symbol']}") or "hold"
-
-        symbols_data.append({
-            "symbol": sym["symbol"],
-            "market": sym["market"],
-            "price_cents": current_price,
-            "change_pct": pct_change,
-            "rsi": round(rsi_val, 1) if not pd.isna(rsi_val) else None,
-            "macd_hist": round(macd_val, 0) if not pd.isna(macd_val) else None,
-            "adx": round(adx_val, 1) if not pd.isna(adx_val) else None,
-            "atr_cents": round(atr_val, 0) if not pd.isna(atr_val) else None,
-            "bb_position": bb_pos,
-            "regime": regime,
-            "last_signal": last_signal,
-        })
 
     # Cache for 5 minutes
     await r.set(REDIS_KEY_MARKET_OVERVIEW, json.dumps(symbols_data), ex=300)
@@ -453,23 +476,28 @@ async def gather_market_overview() -> list[dict]:
 
 
 async def _load_ohlcv_standalone(
-    symbol: str, timeframe: str, lookback_days: int = 30
+    symbol: str, timeframe: str, lookback_days: int = 30,
+    session: AsyncSession | None = None,
 ) -> pd.DataFrame | None:
     """Load OHLCV data from database (standalone version for non-class use)."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=lookback_days)
 
-    async with async_session() as session:
+    async def _query(sess):
         stmt = (
-            select(OHLCV)
-            .where(
+            select(OHLCV).where(
                 OHLCV.symbol == symbol,
                 OHLCV.timeframe == timeframe,
                 OHLCV.timestamp >= cutoff,
-            )
-            .order_by(OHLCV.timestamp.asc())
+            ).order_by(OHLCV.timestamp.asc())
         )
-        result = await session.execute(stmt)
-        rows = result.scalars().all()
+        result = await sess.execute(stmt)
+        return result.scalars().all()
+
+    if session is not None:
+        rows = await _query(session)
+    else:
+        async with async_session() as sess:
+            rows = await _query(sess)
 
     if not rows:
         return None
@@ -485,3 +513,89 @@ async def _load_ohlcv_standalone(
     df = pd.DataFrame(data)
     df.set_index("timestamp", inplace=True)
     return df
+
+
+REDIS_KEY_MARKET_NEWS = "flashtrade:market_news"
+
+NEWS_SYSTEM_PROMPT = """You are a financial news analyst generating concise market commentary.
+Based on current market index levels and conditions, generate 4 market news summaries.
+
+Rules:
+- Each summary should be 2-3 sentences of actionable market intelligence
+- Focus on what's happening and what it means for traders
+- Include specific data points where possible (index levels, percentage moves)
+- Write in a professional financial journalist style
+- Do NOT provide trading recommendations — just factual market commentary
+
+Respond with ONLY valid JSON (no markdown, no explanation):
+{
+    "us_news": {"headline": "Short headline (max 10 words)", "summary": "2-3 sentence US market commentary"},
+    "global_news": {"headline": "Short headline", "summary": "2-3 sentence global markets commentary"},
+    "australian_news": {"headline": "Short headline", "summary": "2-3 sentence Australian market commentary"},
+    "notable_news": {"headline": "Short headline", "summary": "2-3 sentence notable market event from any country"}
+}"""
+
+
+class NewsItem(BaseModel):
+    headline: str
+    summary: str
+
+
+class MarketNews(BaseModel):
+    us_news: NewsItem
+    global_news: NewsItem
+    australian_news: NewsItem
+    notable_news: NewsItem
+    generated_at_utc: str
+    model_used: str = "claude-sonnet-4-6"
+    token_usage: dict = Field(default_factory=dict)
+
+
+async def generate_market_news() -> MarketNews:
+    """Call Claude to generate 4 market news summaries."""
+    if not settings.anthropic_api_key:
+        raise ValueError("ANTHROPIC_API_KEY not configured")
+
+    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+
+    # Build context from index data
+    from app.services.data.yfinance_feed import get_indices
+    indices = await get_indices()
+    context_lines = ["Current market index levels:"]
+    for idx in indices:
+        context_lines.append(f"  {idx['name']} ({idx['symbol']}): {idx['level']:,.2f} ({idx['change_pct']:+.2f}%)")
+    context_lines.append(f"\nTimestamp: {datetime.now(timezone.utc).isoformat()}")
+
+    response = await client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1500,
+        system=NEWS_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": "\n".join(context_lines) + "\n\nGenerate 4 market news summaries."}],
+    )
+
+    raw_text = response.content[0].text
+    json_text = raw_text
+    if "```json" in json_text:
+        json_text = json_text.split("```json")[1].split("```")[0]
+    elif "```" in json_text:
+        json_text = json_text.split("```")[1].split("```")[0]
+
+    data = json.loads(json_text.strip())
+
+    return MarketNews(
+        us_news=NewsItem(**data["us_news"]),
+        global_news=NewsItem(**data["global_news"]),
+        australian_news=NewsItem(**data["australian_news"]),
+        notable_news=NewsItem(**data["notable_news"]),
+        generated_at_utc=datetime.now(timezone.utc).isoformat(),
+        token_usage={
+            "input_tokens": response.usage.input_tokens,
+            "output_tokens": response.usage.output_tokens,
+        },
+    )
+
+
+async def cache_market_news(news: MarketNews) -> None:
+    r = aioredis.from_url(settings.redis_url, decode_responses=True)
+    await r.set(REDIS_KEY_MARKET_NEWS, news.model_dump_json(), ex=3600)
+    await r.aclose()

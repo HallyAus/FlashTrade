@@ -21,6 +21,10 @@ US_SYMBOLS = [
     "AAPL", "NVDA", "MSFT", "GOOGL", "AMZN",
     "META", "TSLA", "AMD", "NFLX", "QQQ",
 ]
+UK_SYMBOLS = [
+    "SHEL.L", "AZN.L", "HSBA.L", "ULVR.L", "BP.L",
+    "GSK.L", "RIO.L", "LSEG.L", "REL.L", "DGE.L",
+]
 CACHE_TTL_SECONDS = 120
 
 
@@ -50,7 +54,7 @@ class YFinanceFeed:
 
     def _fetch_all(self) -> list[StockPrice]:
         """Synchronous fetch of all stock tickers."""
-        all_symbols = ASX_SYMBOLS + US_SYMBOLS
+        all_symbols = ASX_SYMBOLS + US_SYMBOLS + UK_SYMBOLS
         prices: list[StockPrice] = []
 
         try:
@@ -61,9 +65,12 @@ class YFinanceFeed:
                     ticker = tickers.tickers[sym]
                     info = ticker.fast_info
 
-                    is_asx = sym.endswith(".AX")
-                    market = "asx" if is_asx else "us"
-                    currency = "AUD" if is_asx else "USD"
+                    if sym.endswith(".AX"):
+                        market, currency = "asx", "AUD"
+                    elif sym.endswith(".L"):
+                        market, currency = "uk", "GBP"
+                    else:
+                        market, currency = "us", "USD"
 
                     last_price = float(info.get("lastPrice", 0) or 0)
                     prev_close = float(info.get("previousClose", 0) or 0)
@@ -105,3 +112,44 @@ class YFinanceFeed:
             return list(self._cache.values())
 
         return await asyncio.to_thread(self._fetch_all)
+
+
+INDEX_SYMBOLS = {
+    "^AXJO": {"name": "ASX 200", "market": "asx"},
+    "^FTSE": {"name": "FTSE 100", "market": "uk"},
+    "^IXIC": {"name": "NASDAQ", "market": "us"},
+    "^GSPC": {"name": "S&P 500", "market": "us"},
+}
+
+
+def fetch_indices_sync() -> list[dict]:
+    """Fetch major market index levels."""
+    results = []
+    try:
+        tickers = yf.Tickers(" ".join(INDEX_SYMBOLS.keys()))
+        for sym, meta in INDEX_SYMBOLS.items():
+            try:
+                ticker = tickers.tickers[sym]
+                info = ticker.fast_info
+                last_price = float(info.get("lastPrice", 0) or 0)
+                prev_close = float(info.get("previousClose", 0) or 0)
+                change_pct = round(((last_price - prev_close) / prev_close) * 100, 2) if prev_close else 0.0
+                results.append({
+                    "symbol": sym,
+                    "name": meta["name"],
+                    "market": meta["market"],
+                    "level": round(last_price, 2),
+                    "change_pct": change_pct,
+                    "previous_close": round(prev_close, 2),
+                    "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+                })
+            except Exception as e:
+                logger.warning("Failed to fetch index %s: %s", sym, e)
+    except Exception as e:
+        logger.warning("Index batch fetch failed: %s", e)
+    return results
+
+
+async def get_indices() -> list[dict]:
+    """Async wrapper for index fetch with cache."""
+    return await asyncio.to_thread(fetch_indices_sync)

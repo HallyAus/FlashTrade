@@ -16,6 +16,8 @@ import pytest
 
 from app.services.ai.recommender import (
     ClaudeRecommender,
+    MarketNews,
+    NewsItem,
     Recommendation,
     RecommendationAction,
     RecommendationSet,
@@ -70,6 +72,7 @@ class TestRecommendationModels:
         assert rec_set.crypto_opportunities == []
         assert rec_set.asx_opportunities == []
         assert rec_set.us_opportunities == []
+        assert rec_set.uk_opportunities == []
         assert rec_set.market_overview == []
 
     def test_recommendation_set_with_opportunities(self):
@@ -197,6 +200,18 @@ class TestResponseParsing:
                 "timeframe": "2-5 days",
             },
         ],
+        "uk_opportunities": [
+            {
+                "symbol": "SHEL.L",
+                "market": "uk",
+                "action": "watch",
+                "confidence": 0.55,
+                "current_price_cents": 280000,
+                "reasoning": "Oil majors under pressure",
+                "risk_notes": "Energy sector rotation",
+                "timeframe": "1-5 days",
+            },
+        ],
         "symbols_to_avoid": ["DOGE"],
     }
 
@@ -231,8 +246,10 @@ class TestResponseParsing:
         assert result.asx_opportunities[0].symbol == "BHP.AX"
         assert len(result.us_opportunities) == 1
         assert result.us_opportunities[0].symbol == "AAPL"
+        assert len(result.uk_opportunities) == 1
+        assert result.uk_opportunities[0].symbol == "SHEL.L"
         # Combined top_opportunities
-        assert len(result.top_opportunities) == 3
+        assert len(result.top_opportunities) == 4
         assert result.symbols_to_avoid == ["DOGE"]
         assert result.token_usage["input_tokens"] == 1500
 
@@ -255,8 +272,9 @@ class TestResponseParsing:
             mock_ctx.return_value = {"timestamp_utc": "2025-01-01T00:00:00Z", "symbols": [], "market_overview": []}
             result = await recommender.generate()
 
-        assert len(result.top_opportunities) == 3
+        assert len(result.top_opportunities) == 4
         assert len(result.crypto_opportunities) == 1
+        assert len(result.uk_opportunities) == 1
 
     @pytest.mark.asyncio
     async def test_parse_invalid_json_raises(self):
@@ -316,3 +334,37 @@ class TestSerialization:
         assert data["top_opportunities"][0]["action"] == "watch"
         assert "Not financial advice" in data["disclaimer"]
         assert data["market_overview"] == []
+
+
+class TestMarketNewsModels:
+    def test_news_item(self):
+        item = NewsItem(headline="Markets rise", summary="Stocks advanced broadly.")
+        assert item.headline == "Markets rise"
+        assert item.summary == "Stocks advanced broadly."
+
+    def test_market_news(self):
+        news = MarketNews(
+            us_news=NewsItem(headline="US up", summary="S&P gained 1%."),
+            global_news=NewsItem(headline="Asia mixed", summary="Nikkei flat."),
+            australian_news=NewsItem(headline="ASX flat", summary="Banks led losses."),
+            notable_news=NewsItem(headline="Oil spikes", summary="Brent crude +3%."),
+            generated_at_utc="2025-01-01T00:00:00Z",
+        )
+        assert news.us_news.headline == "US up"
+        assert news.model_used == "claude-sonnet-4-6"
+        assert news.token_usage == {}
+
+    def test_market_news_with_uk_recommendation(self):
+        rec = Recommendation(
+            symbol="SHEL.L", market="uk", action="buy", confidence=0.7,
+            current_price_cents=280000, reasoning="Breakout", risk_notes="Oil vol",
+        )
+        rec_set = RecommendationSet(
+            generated_at_utc="2025-01-01T00:00:00Z",
+            model_used="claude-sonnet-4-6",
+            market_summary="UK markets strong.",
+            top_opportunities=[rec],
+            uk_opportunities=[rec],
+        )
+        assert len(rec_set.uk_opportunities) == 1
+        assert rec_set.uk_opportunities[0].symbol == "SHEL.L"

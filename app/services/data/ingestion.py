@@ -52,6 +52,10 @@ US_SYMBOLS = [
     "AAPL", "NVDA", "MSFT", "GOOGL", "AMZN",
     "META", "TSLA", "AMD", "NFLX", "QQQ",
 ]
+UK_SYMBOLS = [
+    "SHEL.L", "AZN.L", "HSBA.L", "ULVR.L", "BP.L",
+    "GSK.L", "RIO.L", "LSEG.L", "REL.L", "DGE.L",
+]
 
 # CCXT timeframe mapping
 TIMEFRAME_MAP = {
@@ -147,21 +151,26 @@ async def ingest_crypto_ohlcv(
 
 
 async def ingest_stock_ohlcv(
-    market: Literal["asx", "us"],
+    market: Literal["asx", "us", "uk"],
     timeframe: str = "1d",
     period: str = "5d",
 ) -> int:
     """Fetch stock OHLCV from yfinance and write to DB.
 
     Args:
-        market: "asx" or "us"
+        market: "asx", "us", or "uk"
         timeframe: yfinance interval (1m, 5m, 15m, 1h, 1d)
         period: yfinance period (1d, 5d, 1mo, 3mo, 6mo, 1y)
 
     Returns total rows upserted.
     """
-    symbols = ASX_SYMBOLS if market == "asx" else US_SYMBOLS
-    currency = "AUD" if market == "asx" else "USD"
+    if market == "asx":
+        symbols = ASX_SYMBOLS
+    elif market == "uk":
+        symbols = UK_SYMBOLS
+    else:
+        symbols = US_SYMBOLS
+    currency = "AUD" if market == "asx" else ("GBP" if market == "uk" else "USD")
 
     total = 0
     async with async_session() as session:
@@ -264,10 +273,25 @@ async def backfill_all(period: str = "6mo") -> dict:
     results.update({f"{sym}_1h": count for sym, count in us_1h.items()})
     errors.extend(us_1h_errors)
 
+    # UK stocks: daily
+    logger.info("Backfilling UK stocks (1d, %s)...", period)
+    uk_1d, uk_1d_errors = await _backfill_stocks("uk", "1d", period)
+    results["uk_1d"] = sum(uk_1d.values())
+    results.update({f"{sym}_1d": count for sym, count in uk_1d.items()})
+    errors.extend(uk_1d_errors)
+
+    # UK stocks: hourly
+    logger.info("Backfilling UK stocks (1h, %s)...", period)
+    uk_1h, uk_1h_errors = await _backfill_stocks("uk", "1h", period)
+    results["uk_1h"] = sum(uk_1h.values())
+    results.update({f"{sym}_1h": count for sym, count in uk_1h.items()})
+    errors.extend(uk_1h_errors)
+
     category_total = (results.get("crypto_1h", 0) + results.get("crypto_4h", 0)
                       + results.get("crypto_1d", 0)
                       + results.get("asx_1d", 0) + results.get("asx_1h", 0)
-                      + results.get("us_1d", 0) + results.get("us_1h", 0))
+                      + results.get("us_1d", 0) + results.get("us_1h", 0)
+                      + results.get("uk_1d", 0) + results.get("uk_1h", 0))
     results["_errors"] = errors  # type: ignore[assignment]
     logger.info("Backfill complete. Total rows: %d | Errors: %d | Breakdown: %s",
                 category_total, len(errors), {k: v for k, v in results.items() if k != "_errors"})
@@ -349,7 +373,7 @@ async def _backfill_crypto(timeframe: str, period: str) -> tuple[dict[str, int],
 
 
 async def _backfill_stocks(
-    market: Literal["asx", "us"],
+    market: Literal["asx", "us", "uk"],
     timeframe: str,
     period: str,
 ) -> tuple[dict[str, int], list[str]]:
@@ -357,7 +381,12 @@ async def _backfill_stocks(
 
     Returns (per_symbol_counts, errors).
     """
-    symbols = ASX_SYMBOLS if market == "asx" else US_SYMBOLS
+    if market == "asx":
+        symbols = ASX_SYMBOLS
+    elif market == "uk":
+        symbols = UK_SYMBOLS
+    else:
+        symbols = US_SYMBOLS
     per_symbol: dict[str, int] = {}
     errors: list[str] = []
 

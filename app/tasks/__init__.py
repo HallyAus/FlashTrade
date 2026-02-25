@@ -34,6 +34,11 @@ celery_app.conf.update(
             "task": "app.tasks.data_tasks.pull_asx_data",
             "schedule": crontab(minute="*/15", hour="23,0-7", day_of_week="0-4"),
         },
+        # UK stocks: every 15 min, Mon-Fri 07:00-17:00 UTC (covers LSE hours)
+        "pull-uk-stocks-15m": {
+            "task": "app.tasks.data_tasks.pull_uk_data",
+            "schedule": crontab(minute="*/15", hour="7-17", day_of_week="1-5"),
+        },
         # --- Trading ---
         # Evaluate signals every 5 minutes (strategies check market hours internally)
         "evaluate-signals-5m": {
@@ -50,6 +55,11 @@ celery_app.conf.update(
         "generate-recommendations-1h": {
             "task": "app.tasks.recommendation_tasks.generate_recommendations",
             "schedule": 3600.0,
+        },
+        # Market news: every hour at :30
+        "generate-market-news-1h": {
+            "task": "app.tasks.recommendation_tasks.generate_market_news",
+            "schedule": crontab(minute=30),
         },
     },
 )
