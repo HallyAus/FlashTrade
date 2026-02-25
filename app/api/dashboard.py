@@ -1,8 +1,13 @@
 """Dashboard API routes — portfolio overview, live prices, health, data quality, charts."""
 
+import json
 import logging
 import time
 from datetime import datetime, timedelta, timezone
+
+import redis.asyncio as aioredis
+
+from app.config import settings
 
 from fastapi import APIRouter, Query
 from sqlalchemy import select
@@ -301,3 +306,30 @@ async def get_available_symbols():
         symbols[symbol]["timeframes"].append(timeframe)
 
     return {"symbols": symbols}
+
+
+REDIS_KEY_INDICES = "flashtrade:indices"
+
+
+@router.get("/indices")
+async def get_market_indices():
+    """Get major market index levels (ASX 200, FTSE 100, NASDAQ, S&P 500).
+
+    Cached in Redis for 5 minutes.
+    """
+    try:
+        r = aioredis.from_url(settings.redis_url, decode_responses=True)
+        cached = await r.get(REDIS_KEY_INDICES)
+        if cached:
+            await r.aclose()
+            return {"indices": json.loads(cached)}
+
+        from app.services.data.yfinance_feed import get_indices
+        indices = await get_indices()
+        if indices:
+            await r.set(REDIS_KEY_INDICES, json.dumps(indices), ex=300)
+        await r.aclose()
+        return {"indices": indices}
+    except Exception as e:
+        logger.error("Failed to fetch indices: %s", e)
+        return {"indices": [], "error": str(e)}

@@ -77,3 +77,27 @@ def pull_asx_data(self) -> dict:
     except Exception as e:
         logger.error("pull_asx_data failed: %s", e)
         raise self.retry(exc=e)
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=60)
+def pull_uk_data(self) -> dict:
+    """Pull UK stock OHLCV every 15 minutes during UK market hours."""
+    return _run_async(_pull_uk_async(self))
+
+
+async def _pull_uk_async(task) -> dict:
+    from app.services.data.ingestion import ingest_stock_ohlcv
+
+    now_utc = datetime.now(timezone.utc)
+    hour = now_utc.hour
+    if not (7 <= hour <= 17):
+        logger.debug("UK market closed (UTC hour=%d), skipping", hour)
+        return {"status": "skipped", "reason": "market_closed"}
+
+    try:
+        count = await ingest_stock_ohlcv("uk", timeframe="1d", period="5d")
+        logger.info("pull_uk_data: ingested %d rows", count)
+        return {"status": "ok", "rows": count}
+    except Exception as e:
+        logger.error("pull_uk_data failed: %s", e)
+        raise task.retry(exc=e)

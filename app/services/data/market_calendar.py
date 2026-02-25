@@ -17,12 +17,14 @@ logger = logging.getLogger(__name__)
 TZ_UTC = timezone.utc
 TZ_AEST = ZoneInfo("Australia/Sydney")  # Handles AEST/AEDT automatically
 TZ_US_EASTERN = ZoneInfo("US/Eastern")  # Handles EST/EDT automatically
+TZ_UK = ZoneInfo("Europe/London")  # Handles GMT/BST automatically
 
 
 class Market(str, Enum):
     ASX = "asx"
     US = "us"
     CRYPTO = "crypto"
+    UK = "uk"
 
 
 # Known market holidays (date only, no time). Add more as needed.
@@ -51,10 +53,22 @@ ASX_HOLIDAYS_2026 = {
     datetime(2026, 12, 28).date(), # Boxing Day (observed)
 }
 
+UK_HOLIDAYS_2026 = {
+    datetime(2026, 1, 1).date(),   # New Year's Day
+    datetime(2026, 4, 3).date(),   # Good Friday
+    datetime(2026, 4, 6).date(),   # Easter Monday
+    datetime(2026, 5, 4).date(),   # Early May Bank Holiday
+    datetime(2026, 5, 25).date(),  # Spring Bank Holiday
+    datetime(2026, 8, 31).date(),  # Summer Bank Holiday
+    datetime(2026, 12, 25).date(), # Christmas
+    datetime(2026, 12, 28).date(), # Boxing Day (observed)
+}
+
 MARKET_HOLIDAYS = {
     Market.US: US_HOLIDAYS_2026,
     Market.ASX: ASX_HOLIDAYS_2026,
     Market.CRYPTO: set(),
+    Market.UK: UK_HOLIDAYS_2026,
 }
 
 
@@ -90,6 +104,13 @@ SESSIONS = {
         close_time=time(23, 59, 59),
         tz=TZ_UTC,
         trading_days=(0, 1, 2, 3, 4, 5, 6),  # Every day
+    ),
+    Market.UK: MarketSession(
+        market=Market.UK,
+        open_time=time(8, 0),    # 08:00 GMT/BST
+        close_time=time(16, 30), # 16:30 GMT/BST
+        tz=TZ_UK,
+        trading_days=(0, 1, 2, 3, 4),  # Mon-Fri
     ),
 }
 

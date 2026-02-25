@@ -61,6 +61,17 @@ DEFAULT_WATCHED_SYMBOLS = [
     {"symbol": "AMD", "market": "us", "timeframe": "1d"},
     {"symbol": "NFLX", "market": "us", "timeframe": "1d"},
     {"symbol": "QQQ", "market": "us", "timeframe": "1d"},
+    # UK — FTSE 100 blue chips
+    {"symbol": "SHEL.L", "market": "uk", "timeframe": "1d"},
+    {"symbol": "AZN.L", "market": "uk", "timeframe": "1d"},
+    {"symbol": "HSBA.L", "market": "uk", "timeframe": "1d"},
+    {"symbol": "ULVR.L", "market": "uk", "timeframe": "1d"},
+    {"symbol": "BP.L", "market": "uk", "timeframe": "1d"},
+    {"symbol": "GSK.L", "market": "uk", "timeframe": "1d"},
+    {"symbol": "RIO.L", "market": "uk", "timeframe": "1d"},
+    {"symbol": "LSEG.L", "market": "uk", "timeframe": "1d"},
+    {"symbol": "REL.L", "market": "uk", "timeframe": "1d"},
+    {"symbol": "DGE.L", "market": "uk", "timeframe": "1d"},
 ]
 
 async def get_watched_symbols(redis_conn=None) -> list[dict]:

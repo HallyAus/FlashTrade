@@ -95,7 +95,8 @@ async def trigger_backfill(period: str = "6mo"):
         total = (results.get("crypto_1h", 0) + results.get("crypto_4h", 0)
                  + results.get("crypto_1d", 0)
                  + results.get("asx_1d", 0) + results.get("asx_1h", 0)
-                 + results.get("us_1d", 0) + results.get("us_1h", 0))
+                 + results.get("us_1d", 0) + results.get("us_1h", 0)
+                 + results.get("uk_1d", 0) + results.get("uk_1h", 0))
         return {
             "status": "completed" if not errors else "partial",
             "period": period,
@@ -115,7 +116,7 @@ class AddSymbolRequest(BaseModel):
     """Request body for adding a watched symbol."""
 
     symbol: str = Field(..., min_length=1, max_length=20)
-    market: str = Field(..., pattern="^(crypto|asx|us)$")
+    market: str = Field(..., pattern="^(crypto|asx|us|uk)$")
     timeframe: str = Field(default="1h", pattern="^(1h|4h|1d)$")
 
 
@@ -135,6 +136,8 @@ async def add_symbol(req: AddSymbolRequest):
     # Validate ASX suffix
     if req.market == "asx" and not req.symbol.endswith(".AX"):
         return {"status": "error", "message": "ASX symbols must end with .AX (e.g., BHP.AX)"}
+    if req.market == "uk" and not req.symbol.endswith(".L"):
+        return {"status": "error", "message": "UK symbols must end with .L (e.g., SHEL.L)"}
 
     symbols = await get_watched_symbols()
 
@@ -193,7 +196,7 @@ class BacktestRequest(BaseModel):
 
     strategy: str = Field(..., pattern="^(momentum|meanrev|turtle_crypto|turtle_stocks|auto)$")
     symbol: str = Field(..., min_length=1, max_length=20)
-    market: str = Field(..., pattern="^(crypto|us|asx)$")
+    market: str = Field(..., pattern="^(crypto|us|asx|uk)$")
     timeframe: str = Field(default="1h", pattern="^(1h|4h|1d)$")
     days: int = Field(default=180, ge=30, le=730)
 
