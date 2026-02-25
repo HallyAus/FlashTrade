@@ -356,6 +356,9 @@ async def get_turtle_scan():
 
         watched = await get_watched_symbols(redis_conn=r)
 
+        # Turtle scanner is for stocks only — skip crypto
+        watched = [s for s in watched if s["market"] != "crypto"]
+
         results = []
         async with async_session() as session:
             for sym in watched:
@@ -363,11 +366,11 @@ async def get_turtle_scan():
                 market = sym["market"]
                 timeframe = sym["timeframe"]
 
-                is_crypto = market == "crypto"
-                entry_period = 15 if is_crypto else 20
-                long_entry_period = 40 if is_crypto else 55
-                exit_period = 8 if is_crypto else 10
-                stop_mult = 2.5 if is_crypto else 2.0
+                # Classic Turtle parameters for stocks
+                entry_period = 20
+                long_entry_period = 55
+                exit_period = 10
+                stop_mult = 2.0
 
                 cutoff = datetime.now(timezone.utc) - timedelta(days=90)
                 stmt = (
