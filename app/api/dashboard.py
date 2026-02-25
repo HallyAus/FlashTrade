@@ -309,6 +309,7 @@ async def get_available_symbols():
 
 
 REDIS_KEY_INDICES = "flashtrade:indices"
+REDIS_KEY_TURTLE_SCAN = "flashtrade:turtle_scan"
 
 
 @router.get("/indices")
@@ -333,3 +334,145 @@ async def get_market_indices():
     except Exception as e:
         logger.error("Failed to fetch indices: %s", e)
         return {"indices": [], "error": str(e)}
+
+
+@router.get("/turtle-scan")
+async def get_turtle_scan():
+    """Scan all watched symbols for turtle breakout proximity.
+
+    Returns Donchian channel levels, ATR, breakout distance %, system type,
+    and whether each symbol is near a breakout. Cached for 5 minutes.
+    """
+    import pandas as pd
+    from app.services.strategy.auto_trader import get_watched_symbols
+    from app.services.strategy.indicators import atr as calc_atr, donchian_channel
+
+    try:
+        r = aioredis.from_url(settings.redis_url, decode_responses=True)
+        cached = await r.get(REDIS_KEY_TURTLE_SCAN)
+        if cached:
+            await r.aclose()
+            return json.loads(cached)
+
+        watched = await get_watched_symbols(redis_conn=r)
+
+        results = []
+        async with async_session() as session:
+            for sym in watched:
+                symbol = sym["symbol"]
+                market = sym["market"]
+                timeframe = sym["timeframe"]
+
+                is_crypto = market == "crypto"
+                entry_period = 15 if is_crypto else 20
+                long_entry_period = 40 if is_crypto else 55
+                exit_period = 8 if is_crypto else 10
+                stop_mult = 2.5 if is_crypto else 2.0
+
+                cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+                stmt = (
+                    select(OHLCV)
+                    .where(
+                        OHLCV.symbol == symbol,
+                        OHLCV.timeframe == timeframe,
+                        OHLCV.timestamp >= cutoff,
+                    )
+                    .order_by(OHLCV.timestamp.asc())
+                )
+                result = await session.execute(stmt)
+                rows = result.scalars().all()
+
+                min_bars = max(entry_period, long_entry_period) + 5
+                if len(rows) < min_bars:
+                    continue
+
+                df = pd.DataFrame({
+                    "timestamp": [row.timestamp for row in rows],
+                    "open": [float(row.open) for row in rows],
+                    "high": [float(row.high) for row in rows],
+                    "low": [float(row.low) for row in rows],
+                    "close": [float(row.close) for row in rows],
+                    "volume": [float(row.volume) for row in rows],
+                })
+                df.set_index("timestamp", inplace=True)
+
+                close = df["close"]
+                high = df["high"]
+                low = df["low"]
+
+                # Donchian channels (shifted to avoid look-ahead)
+                dc_upper, dc_lower, _ = donchian_channel(
+                    high.shift(1), low.shift(1), entry_period
+                )
+                long_upper, _, _ = donchian_channel(
+                    high.shift(1), low.shift(1), long_entry_period
+                )
+                _, exit_lower, _ = donchian_channel(
+                    high.shift(1), low.shift(1), exit_period
+                )
+                atr_values = calc_atr(high, low, close, period=20)
+
+                current_close = float(close.iloc[-1])
+                cur_dc_upper = float(dc_upper.iloc[-1]) if not pd.isna(dc_upper.iloc[-1]) else None
+                cur_long_upper = float(long_upper.iloc[-1]) if not pd.isna(long_upper.iloc[-1]) else None
+                cur_exit_lower = float(exit_lower.iloc[-1]) if not pd.isna(exit_lower.iloc[-1]) else None
+                cur_atr = float(atr_values.iloc[-1]) if not pd.isna(atr_values.iloc[-1]) else None
+
+                if cur_dc_upper is None:
+                    continue
+
+                # Breakout distance %
+                breakout_dist_pct = round(
+                    (current_close - cur_dc_upper) / cur_dc_upper * 100, 2
+                ) if cur_dc_upper > 0 else None
+
+                # System classification
+                above_short = current_close > cur_dc_upper
+                above_long = cur_long_upper is not None and current_close > cur_long_upper
+
+                if above_long:
+                    system = "System 2 (breakout)"
+                elif above_short:
+                    system = "System 1 (breakout)"
+                elif breakout_dist_pct is not None and breakout_dist_pct > -3:
+                    system = "Approaching"
+                else:
+                    system = "Waiting"
+
+                # Stop level if entered
+                stop_level = round(
+                    current_close - stop_mult * cur_atr, 2
+                ) if cur_atr else None
+
+                results.append({
+                    "symbol": symbol,
+                    "market": market,
+                    "price": round(current_close, 2),
+                    "donchian_upper": round(cur_dc_upper, 2),
+                    "donchian_long_upper": round(cur_long_upper, 2) if cur_long_upper else None,
+                    "donchian_exit_lower": round(cur_exit_lower, 2) if cur_exit_lower else None,
+                    "atr_20": round(cur_atr, 2) if cur_atr else None,
+                    "breakout_dist_pct": breakout_dist_pct,
+                    "system": system,
+                    "stop_level": stop_level,
+                    "entry_period": entry_period,
+                    "long_entry_period": long_entry_period,
+                    "exit_period": exit_period,
+                    "stop_multiplier": stop_mult,
+                })
+
+        # Sort: breakouts first, then closest to breakout
+        results.sort(key=lambda x: -(x["breakout_dist_pct"] or -999))
+
+        payload = {
+            "symbols": results,
+            "count": len(results),
+            "scanned_at_utc": datetime.now(timezone.utc).isoformat(),
+        }
+        await r.set(REDIS_KEY_TURTLE_SCAN, json.dumps(payload), ex=300)
+        await r.aclose()
+        return payload
+
+    except Exception as e:
+        logger.error("Turtle scan failed: %s", e)
+        return {"symbols": [], "count": 0, "error": str(e)}
