@@ -184,12 +184,16 @@ class ClaudeRecommender:
 
         response = await client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=4000,
+            max_tokens=8000,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_prompt}],
         )
 
         raw_text = response.content[0].text
+
+        # Check if response was truncated
+        if response.stop_reason == "max_tokens":
+            logger.warning("Claude response truncated (hit max_tokens)")
 
         # Parse JSON from response (handle markdown code blocks if present)
         json_text = raw_text
