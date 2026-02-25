@@ -94,7 +94,10 @@ class PaperExecutor:
                         "reason": "No open position to sell",
                     }
 
-        # Step 3: Execute (instant fill for paper trading)
+        # Step 3: Apply adjusted quantity from risk manager if downsized
+        effective_qty = verdict.adjusted_quantity_cents or order.quantity_cents
+
+        # Step 4: Execute (instant fill for paper trading)
         async with async_session() as session:
             now = datetime.now(timezone.utc)
 
@@ -104,7 +107,7 @@ class PaperExecutor:
                 market=order.market,
                 side=order.side,
                 order_type=order.order_type,
-                quantity_cents=order.quantity_cents,
+                quantity_cents=effective_qty,
                 price_cents=order.price_cents,
                 stop_loss_cents=order.stop_loss_cents,
                 status="filled",
@@ -117,15 +120,19 @@ class PaperExecutor:
             session.add(trade)
             await session.flush()
 
-            # Step 4: Update positions
+            # Step 5: Update positions (use effective qty for buys)
             if order.side == "buy":
+                # Override order qty so position reflects downsized amount
+                order.quantity_cents = effective_qty
                 await self._open_or_add_position(session, order, trade.id, now)
             elif order.side == "sell":
-                pnl = await self._close_position(session, order, now)
+                pnl, pos_qty = await self._close_position(session, order, now)
+                trade.quantity_cents = pos_qty  # actual position size closed
+                trade.realized_pnl_cents = pnl
                 if pnl is not None:
                     self._risk_manager.record_trade_result(pnl)
 
-            # Step 4: Journal entry
+            # Step 6: Journal entry
             journal = JournalEntry(
                 trade_id=trade.id,
                 symbol=order.symbol,
@@ -139,14 +146,14 @@ class PaperExecutor:
 
             logger.info(
                 "Paper trade executed: %s %s %d cents @ %d cents",
-                order.side, order.symbol, order.quantity_cents, order.price_cents,
+                order.side, order.symbol, effective_qty, order.price_cents,
             )
             return {
                 "status": "filled",
                 "trade_id": trade.id,
                 "symbol": order.symbol,
                 "side": order.side,
-                "quantity_cents": order.quantity_cents,
+                "quantity_cents": effective_qty,
                 "price_cents": order.price_cents,
             }
 
@@ -193,8 +200,11 @@ class PaperExecutor:
 
     async def _close_position(
         self, session: AsyncSession, order: Order, now: datetime
-    ) -> int | None:
-        """Close a position and calculate realized P&L. Returns pnl_cents or None."""
+    ) -> tuple[int | None, int]:
+        """Close a position and calculate realized P&L.
+
+        Returns (pnl_cents, position_quantity). pnl_cents is None if no position found.
+        """
         existing = await session.execute(
             select(Position)
             .where(Position.symbol == order.symbol)
@@ -204,11 +214,13 @@ class PaperExecutor:
 
         if not pos:
             logger.warning("No position to close for %s", order.symbol)
-            return None
+            return None, order.quantity_cents
+
+        pos_qty = pos.quantity
 
         # Calculate P&L: quantity * (sell_price - entry_price) / entry_price
         if pos.entry_price_cents > 0:
-            pnl_cents = int(pos.quantity * (order.price_cents - pos.entry_price_cents) / pos.entry_price_cents)
+            pnl_cents = int(pos_qty * (order.price_cents - pos.entry_price_cents) / pos.entry_price_cents)
         else:
             pnl_cents = 0
 
@@ -218,10 +230,10 @@ class PaperExecutor:
         )
 
         logger.info(
-            "Position closed: %s, P&L: %d cents ($%.2f)",
-            order.symbol, pnl_cents, pnl_cents / 100,
+            "Position closed: %s, qty: %d, P&L: %d cents ($%.2f)",
+            order.symbol, pos_qty, pnl_cents, pnl_cents / 100,
         )
-        return pnl_cents
+        return pnl_cents, pos_qty
 
     async def get_positions(self) -> list[dict]:
         """Get all open positions."""
@@ -265,6 +277,7 @@ class PaperExecutor:
                     "status": t.status,
                     "strategy": t.strategy,
                     "reason": t.reason,
+                    "realized_pnl_cents": t.realized_pnl_cents,
                     "created_at": t.created_at.isoformat(),
                     "filled_at": t.filled_at.isoformat() if t.filled_at else None,
                 }
@@ -312,6 +325,7 @@ class PaperExecutor:
                 stop_loss_cents=pos.stop_loss_cents,
                 status="filled",
                 strategy="stop_loss",
+                realized_pnl_cents=pnl_cents,
                 reason=f"Stop-loss triggered. P&L: {pnl_cents} cents",
                 created_at=now,
                 filled_at=now,
@@ -356,6 +370,15 @@ class PaperExecutor:
             # Bypass risk manager for emergency close
             async with async_session() as session:
                 now = datetime.now(timezone.utc)
+
+                # Calculate P&L from position data
+                entry = pos["entry_price_cents"]
+                qty = pos["quantity"]
+                if entry > 0:
+                    pnl_cents = int(qty * (pos["current_price_cents"] - entry) / entry)
+                else:
+                    pnl_cents = 0
+
                 trade = Trade(
                     symbol=order.symbol,
                     market=order.market,
@@ -366,7 +389,8 @@ class PaperExecutor:
                     stop_loss_cents=0,
                     status="filled",
                     strategy="kill_switch",
-                    reason="Emergency close",
+                    realized_pnl_cents=pnl_cents,
+                    reason=f"Emergency close. P&L: {pnl_cents} cents",
                     created_at=now,
                     filled_at=now,
                 )
@@ -375,6 +399,6 @@ class PaperExecutor:
                     delete(Position).where(Position.symbol == order.symbol)
                 )
                 await session.commit()
-                results.append({"symbol": order.symbol, "closed": True})
+                results.append({"symbol": order.symbol, "closed": True, "pnl_cents": pnl_cents})
 
         return results

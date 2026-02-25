@@ -28,4 +28,5 @@ class Trade(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(datetime.UTC)
     )
+    realized_pnl_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     filled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

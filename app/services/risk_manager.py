@@ -122,33 +122,47 @@ class RiskManager:
                 reason="Order rejected: stop-loss is mandatory",
             )
 
-        # Rule: max position size
-        if order.quantity_cents > settings.max_position_size_cents:
-            return RiskVerdict(
-                approved=False,
-                reason=(
-                    f"Position size {order.quantity_cents} cents exceeds max "
-                    f"{settings.max_position_size_cents} cents"
-                ),
+        # Rule: max position size — downsize if possible
+        quantity = order.quantity_cents
+        if quantity > settings.max_position_size_cents:
+            quantity = settings.max_position_size_cents
+            logger.info(
+                "Downsized %s from %d to %d cents (max position size)",
+                order.symbol, order.quantity_cents, quantity,
             )
 
         # Rule: max per-trade risk (scaled to position size)
+        stop_distance_pct = 0.0
         if order.price_cents > 0:
             stop_distance_pct = abs(order.price_cents - order.stop_loss_cents) / order.price_cents
-            risk_per_trade_cents = int(order.quantity_cents * stop_distance_pct)
+            risk_per_trade_cents = int(quantity * stop_distance_pct)
         else:
-            risk_per_trade_cents = order.quantity_cents
+            risk_per_trade_cents = quantity
         max_risk_cents = int(
             self._portfolio_value_cents * settings.max_per_trade_risk_pct / 100
         )
         if risk_per_trade_cents > max_risk_cents:
-            return RiskVerdict(
-                approved=False,
-                reason=(
-                    f"Per-trade risk {risk_per_trade_cents} cents exceeds "
-                    f"max {max_risk_cents} cents ({settings.max_per_trade_risk_pct}% of portfolio)"
-                ),
-            )
+            # Downsize to fit within risk limit instead of rejecting
+            if stop_distance_pct > 0:
+                safe_quantity = int(max_risk_cents / stop_distance_pct)
+                # Also cap at max position size
+                safe_quantity = min(safe_quantity, settings.max_position_size_cents)
+            else:
+                safe_quantity = quantity
+            if safe_quantity >= 100:  # minimum $1 position
+                quantity = safe_quantity
+                logger.info(
+                    "Downsized %s from %d to %d cents (per-trade risk limit)",
+                    order.symbol, order.quantity_cents, quantity,
+                )
+            else:
+                return RiskVerdict(
+                    approved=False,
+                    reason=(
+                        f"Per-trade risk too high: even $1 position exceeds "
+                        f"max {max_risk_cents} cents ({settings.max_per_trade_risk_pct}% of portfolio)"
+                    ),
+                )
 
         # Rule: daily drawdown check
         max_daily_loss_cents = int(
@@ -162,15 +176,21 @@ class RiskManager:
             )
             return RiskVerdict(approved=False, reason=self._halt_reason)
 
+        adjusted = quantity if quantity != order.quantity_cents else None
         logger.info(
-            "Order approved: %s %s %s @ %d cents, SL @ %d cents",
+            "Order approved: %s %s %s @ %d cents, SL @ %d cents%s",
             order.side,
             order.symbol,
-            order.quantity_cents,
+            quantity,
             order.price_cents,
             order.stop_loss_cents,
+            f" (downsized from {order.quantity_cents})" if adjusted else "",
         )
-        return RiskVerdict(approved=True, reason="All risk checks passed")
+        return RiskVerdict(
+            approved=True,
+            reason="All risk checks passed",
+            adjusted_quantity_cents=adjusted,
+        )
 
     def record_trade_result(self, pnl_cents: int) -> None:
         """Record a trade result for circuit breaker and daily P&L tracking."""

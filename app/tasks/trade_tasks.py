@@ -80,6 +80,7 @@ async def _evaluate_signals_async() -> dict:
     # Load open positions so we only sell what we actually hold
     open_positions = await executor.get_positions()
     held_symbols = {p["symbol"] for p in open_positions}
+    held_quantities = {p["symbol"]: p["quantity"] for p in open_positions}
 
     watched = await get_watched_symbols()
     for sym in watched:
@@ -106,7 +107,10 @@ async def _evaluate_signals_async() -> dict:
             signals_generated += 1
 
             # Convert signal to order
-            quantity_cents = signal.indicator_data.get("quantity_cents", 100)
+            if signal.action == "sell":
+                quantity_cents = held_quantities.get(signal.symbol, 100)
+            else:
+                quantity_cents = signal.indicator_data.get("quantity_cents", 100)
             order = Order(
                 symbol=signal.symbol,
                 market=signal.market,
