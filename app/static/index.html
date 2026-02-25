@@ -1204,6 +1204,17 @@
         </div>
 
         <!-- Market News -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; margin-bottom:8px;">
+            <span style="font-size:13px; font-weight:600; color:#e1e4e8; text-transform:uppercase; letter-spacing:0.5px;">
+                AI Market News
+                <span id="news-status" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0; font-weight:400;"> -- loading</span>
+            </span>
+            <button id="btn-refresh-news"
+                    style="font-size:11px; padding:4px 10px; background:#1e2836; border:1px solid #30363d; color:#58a6ff; border-radius:4px; cursor:pointer;"
+                    title="Refresh AI market news">
+                Refresh
+            </button>
+        </div>
         <div class="news-row" id="news-row">
             <div class="news-card">
                 <div class="news-label">US Markets</div>
@@ -3204,6 +3215,7 @@
         },
 
         renderMarketNews(data) {
+            var statusEl = document.getElementById('news-status');
             var pairs = [
                 ['us_news', 'news-us'],
                 ['global_news', 'news-global'],
@@ -3218,6 +3230,50 @@
                     document.getElementById(prefix + '-headline').textContent = item.headline;
                     document.getElementById(prefix + '-summary').textContent = item.summary;
                 }
+            }
+
+            // Show "updated X ago"
+            if (data.generated_at_utc) {
+                var diff = Date.now() - new Date(data.generated_at_utc).getTime();
+                var mins = Math.floor(diff / 60000);
+                var ago = mins < 1 ? 'just now' : mins < 60 ? mins + 'm ago' : Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm ago';
+                statusEl.textContent = ' -- updated ' + ago;
+                statusEl.style.color = mins < 70 ? '#3fb950' : '#d29922';
+            } else if (!data.cached) {
+                statusEl.textContent = ' -- generating...';
+                statusEl.style.color = '#d29922';
+                // Auto-refresh in 30s if still generating
+                var self = this;
+                if (!this.state._newsRetryTimer) {
+                    this.state._newsRetryTimer = setTimeout(function() {
+                        self.state._newsRetryTimer = null;
+                        self.fetchMarketNews();
+                    }, 30000);
+                }
+            }
+        },
+
+        async refreshNews() {
+            var btn = document.getElementById('btn-refresh-news');
+            btn.textContent = 'Refreshing...';
+            btn.disabled = true;
+            try {
+                await this.api(this.CONFIG.API_BASE + '/api/recommendations/refresh-news', { method: 'POST' });
+                this.addLog('info', 'News refresh queued');
+                btn.textContent = 'Queued';
+                btn.style.color = '#3fb950';
+                var self = this;
+                setTimeout(function() {
+                    self.fetchMarketNews();
+                    btn.textContent = 'Refresh';
+                    btn.style.color = '#58a6ff';
+                    btn.disabled = false;
+                }, 35000);
+            } catch (err) {
+                this.addLog('warn', 'News refresh failed: ' + err.message);
+                btn.textContent = 'Refresh';
+                btn.style.color = '#58a6ff';
+                btn.disabled = false;
             }
         },
 
@@ -3251,8 +3307,16 @@
                 statusEl.textContent = ' -- updated ' + ago;
                 statusEl.style.color = mins < 70 ? '#3fb950' : '#d29922';
             } else {
-                statusEl.textContent = data.error ? ' -- error' : ' -- waiting';
-                statusEl.style.color = data.error ? '#f85149' : '#6b7280';
+                statusEl.textContent = data.error ? ' -- error' : ' -- generating...';
+                statusEl.style.color = data.error ? '#f85149' : '#d29922';
+                // Auto-refresh after 30s if first generation is in progress
+                if (!data.error && !this.state._recsRetryTimer) {
+                    var self2 = this;
+                    this.state._recsRetryTimer = setTimeout(function() {
+                        self2.state._recsRetryTimer = null;
+                        self2.fetchRecommendations();
+                    }, 30000);
+                }
             }
 
             // Helper: render a list of recommendations into a tbody
@@ -3717,6 +3781,7 @@
             document.getElementById('kill-btn').addEventListener('click', function() { self.killSwitch(); });
             document.getElementById('btn-backfill').addEventListener('click', function() { self.triggerBackfill(); });
             document.getElementById('btn-refresh-recs').addEventListener('click', function() { self.refreshRecommendations(); });
+            document.getElementById('btn-refresh-news').addEventListener('click', function() { self.refreshNews(); });
             document.getElementById('btn-buy').addEventListener('click', function() { self.placeTrade('buy'); });
             document.getElementById('btn-sell').addEventListener('click', function() { self.placeTrade('sell'); });
             document.getElementById('chart-symbol').addEventListener('change', function() { self.loadChart(); });

@@ -37,9 +37,18 @@ async def get_recommendations():
             data["cached"] = True
             return data
 
+        # No cache — auto-trigger first generation (with lock to prevent spam)
+        if settings.anthropic_api_key and not error:
+            r2 = aioredis.from_url(settings.redis_url, decode_responses=True)
+            lock = await r2.set("flashtrade:recs:generating", "1", ex=120, nx=True)
+            await r2.aclose()
+            if lock:
+                from app.tasks.recommendation_tasks import generate_recommendations
+                generate_recommendations.delay()
+
         return {
             "generated_at_utc": None,
-            "market_summary": "No recommendations available yet. Waiting for first hourly analysis.",
+            "market_summary": "Generating first AI analysis now. Refresh in ~30 seconds." if not error else "Error during analysis. Will retry automatically.",
             "top_opportunities": [],
             "crypto_opportunities": [],
             "asx_opportunities": [],
@@ -80,7 +89,11 @@ async def get_market_overview():
 
 @router.get("/news")
 async def get_market_news():
-    """Get AI-generated market news summaries."""
+    """Get AI-generated market news summaries.
+
+    If no cached news exists and API key is configured, auto-triggers
+    generation so users don't wait for the hourly beat.
+    """
     try:
         r = aioredis.from_url(settings.redis_url, decode_responses=True)
         raw = await r.get(REDIS_KEY_MARKET_NEWS)
@@ -91,17 +104,41 @@ async def get_market_news():
             data["cached"] = True
             return data
 
+        # No cache — auto-trigger first generation (with lock to prevent spam)
+        if settings.anthropic_api_key:
+            r2 = aioredis.from_url(settings.redis_url, decode_responses=True)
+            lock = await r2.set("flashtrade:news:generating", "1", ex=120, nx=True)
+            await r2.aclose()
+            if lock:
+                from app.tasks.recommendation_tasks import generate_market_news
+                generate_market_news.delay()
+
         return {
-            "us_news": {"headline": "Loading...", "summary": "Market news will appear after the first hourly analysis."},
-            "global_news": {"headline": "Loading...", "summary": "Market news will appear after the first hourly analysis."},
-            "australian_news": {"headline": "Loading...", "summary": "Market news will appear after the first hourly analysis."},
-            "notable_news": {"headline": "Loading...", "summary": "Market news will appear after the first hourly analysis."},
+            "us_news": {"headline": "Generating...", "summary": "AI market news is being generated now. Refresh in ~30 seconds."},
+            "global_news": {"headline": "Generating...", "summary": "AI market news is being generated now. Refresh in ~30 seconds."},
+            "australian_news": {"headline": "Generating...", "summary": "AI market news is being generated now. Refresh in ~30 seconds."},
+            "notable_news": {"headline": "Generating...", "summary": "AI market news is being generated now. Refresh in ~30 seconds."},
             "generated_at_utc": None,
             "cached": False,
         }
     except Exception as e:
         logger.error("Failed to read market news from Redis: %s", e)
         return {"error": str(e)}
+
+
+@router.post("/refresh-news")
+async def refresh_news():
+    """Trigger immediate news refresh. No API key required."""
+    from app.tasks.recommendation_tasks import generate_market_news
+
+    if not settings.anthropic_api_key:
+        return {"status": "error", "message": "ANTHROPIC_API_KEY not configured"}
+
+    generate_market_news.delay()
+    return {
+        "status": "queued",
+        "message": "News refresh queued. Results will appear in ~30 seconds.",
+    }
 
 
 @router.post("/refresh", dependencies=[Depends(require_api_key)])
