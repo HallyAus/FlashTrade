@@ -23,7 +23,7 @@ class MomentumStrategy(BaseStrategy):
     def __init__(
         self,
         rsi_entry: float = 30.0,
-        rsi_exit: float = 70.0,
+        rsi_exit: float = 75.0,
         atr_stop_multiplier: float = 2.0,
         trend_filter: bool = False,
         volume_filter: bool = False,

@@ -99,12 +99,12 @@ async def get_portfolio():
     # Unrealized P&L = sum of all position P&Ls (already calculated above from live prices)
     unrealized_pnl_cents = sum(p.get("unrealized_pnl_cents", 0) for p in positions)
 
-    # Realized P&L = sum of profit/loss from closed (sell) trades
-    # For each sell trade, the P&L is embedded in the reason field by the executor.
-    # More accurately: cash_now + cost_of_open_positions - starting_cash
-    # This equals the net gain/loss from all fully closed positions.
-    cost_basis_open = sum(p.get("quantity", 0) for p in positions)
-    realized_pnl_cents = cash_cents + cost_basis_open - STARTING_CASH_CENTS
+    # Realized P&L = direct sum from Trade.realized_pnl_cents on closed sells
+    realized_pnl_cents = sum(
+        t.realized_pnl_cents
+        for t in trades
+        if t.side == "sell" and t.realized_pnl_cents is not None
+    )
 
     result = {
         "cash_cents": cash_cents,
