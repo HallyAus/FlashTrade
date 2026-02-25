@@ -1128,6 +1128,47 @@
             color: #9ca3af;
             line-height: 1.5;
         }
+
+        /* Turtle Scan card */
+        .turtle-card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        .turtle-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .turtle-table th {
+            text-align: left;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+            padding: 6px 8px;
+            border-bottom: 1px solid #21262d;
+            cursor: pointer;
+        }
+        .turtle-table th:hover { color: #58a6ff; }
+        .turtle-table td {
+            padding: 8px;
+            border-bottom: 1px solid #161b22;
+            font-size: 12px;
+        }
+        .turtle-table tr:hover { background: rgba(88, 166, 255, 0.04); }
+        .turtle-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .turtle-badge.breakout { background: rgba(46, 160, 67, 0.2); color: #3fb950; }
+        .turtle-badge.approaching { background: rgba(210, 153, 34, 0.2); color: #d29922; }
+        .turtle-badge.waiting { background: rgba(139, 148, 158, 0.15); color: #8b949e; }
     </style>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 </head>
@@ -1236,6 +1277,49 @@
                 <div class="news-headline" id="news-notable-headline">Loading...</div>
                 <div class="news-summary" id="news-notable-summary"></div>
             </div>
+        </div>
+
+        <!-- Turtle Trading Scan -->
+        <div class="turtle-card" id="turtle-card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:13px; font-weight:600; color:#e1e4e8; text-transform:uppercase; letter-spacing:0.5px;">
+                    Turtle Trading Scanner
+                    <span id="turtle-status" style="font-size:11px; color:#6b7280; text-transform:none; letter-spacing:0; font-weight:400;"> -- loading</span>
+                </span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <select id="turtle-filter" style="font-size:11px; padding:3px 8px; background:#1e2836; border:1px solid #30363d; color:#e1e4e8; border-radius:4px; cursor:pointer;">
+                        <option value="all">All Markets</option>
+                        <option value="breakout">Breakouts Only</option>
+                        <option value="approaching">Approaching</option>
+                        <option value="crypto">Crypto</option>
+                        <option value="asx">ASX</option>
+                        <option value="us">US</option>
+                        <option value="uk">UK</option>
+                    </select>
+                    <button id="btn-refresh-turtle"
+                            style="font-size:11px; padding:4px 10px; background:#1e2836; border:1px solid #30363d; color:#58a6ff; border-radius:4px; cursor:pointer;"
+                            title="Refresh turtle scan">
+                        Refresh
+                    </button>
+                </div>
+            </div>
+            <table class="turtle-table">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Market</th>
+                        <th>Price</th>
+                        <th>Donchian Upper</th>
+                        <th>Breakout Dist</th>
+                        <th>ATR (20)</th>
+                        <th>Stop Level</th>
+                        <th>System</th>
+                    </tr>
+                </thead>
+                <tbody id="turtle-body">
+                    <tr><td colspan="8" style="color:#6b7280; text-align:center; padding:20px;">Scanning...</td></tr>
+                </tbody>
+            </table>
         </div>
 
         <div class="grid">
@@ -3277,6 +3361,135 @@
             }
         },
 
+        // ============================================================
+        // Turtle Trading Scanner
+        // ============================================================
+        async fetchTurtleScan() {
+            try {
+                var data = await this.api(this.CONFIG.API_BASE + '/api/dashboard/turtle-scan');
+                this.renderTurtleScan(data);
+            } catch (err) {
+                // silent fail
+            }
+        },
+
+        renderTurtleScan(data) {
+            var body = document.getElementById('turtle-body');
+            var statusEl = document.getElementById('turtle-status');
+            var symbols = data.symbols || [];
+
+            if (data.scanned_at_utc) {
+                var diff = Date.now() - new Date(data.scanned_at_utc).getTime();
+                var mins = Math.floor(diff / 60000);
+                var ago = mins < 1 ? 'just now' : mins + 'm ago';
+                statusEl.textContent = ' -- ' + symbols.length + ' symbols scanned ' + ago;
+                statusEl.style.color = '#3fb950';
+            }
+
+            if (!symbols.length) {
+                body.innerHTML = '<tr><td colspan="8" style="color:#6b7280; text-align:center; padding:20px;">No data yet. Waiting for OHLCV data to load.</td></tr>';
+                return;
+            }
+
+            // Apply filter
+            var filter = document.getElementById('turtle-filter').value;
+            var filtered = symbols;
+            if (filter === 'breakout') {
+                filtered = symbols.filter(function(s) { return s.system.indexOf('breakout') !== -1; });
+            } else if (filter === 'approaching') {
+                filtered = symbols.filter(function(s) { return s.system === 'Approaching' || s.system.indexOf('breakout') !== -1; });
+            } else if (filter === 'crypto' || filter === 'asx' || filter === 'us' || filter === 'uk') {
+                filtered = symbols.filter(function(s) { return s.market === filter; });
+            }
+
+            var frag = document.createDocumentFragment();
+            for (var i = 0; i < filtered.length; i++) {
+                var s = filtered[i];
+                var tr = document.createElement('tr');
+
+                // Symbol
+                var tdSym = document.createElement('td');
+                tdSym.style.fontWeight = '600';
+                tdSym.style.color = '#e1e4e8';
+                tdSym.textContent = s.symbol;
+
+                // Market
+                var tdMkt = document.createElement('td');
+                tdMkt.style.color = '#9ca3af';
+                tdMkt.textContent = s.market.toUpperCase();
+
+                // Price (convert from cents to dollars)
+                var tdPrice = document.createElement('td');
+                tdPrice.style.color = '#e1e4e8';
+                var priceVal = s.price / 100;
+                tdPrice.textContent = s.market === 'crypto'
+                    ? '$' + priceVal.toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2})
+                    : '$' + priceVal.toFixed(2);
+
+                // Donchian Upper
+                var tdDC = document.createElement('td');
+                tdDC.style.color = '#9ca3af';
+                var dcVal = s.donchian_upper / 100;
+                tdDC.textContent = s.donchian_upper
+                    ? '$' + dcVal.toFixed(2) + ' (' + s.entry_period + 'd)'
+                    : '--';
+
+                // Breakout Distance %
+                var tdDist = document.createElement('td');
+                if (s.breakout_dist_pct != null) {
+                    var dist = s.breakout_dist_pct;
+                    tdDist.textContent = (dist >= 0 ? '+' : '') + dist.toFixed(2) + '%';
+                    tdDist.style.color = dist >= 0 ? '#3fb950' : dist > -3 ? '#d29922' : '#f85149';
+                    tdDist.style.fontWeight = '600';
+                } else {
+                    tdDist.textContent = '--';
+                    tdDist.style.color = '#6b7280';
+                }
+
+                // ATR
+                var tdATR = document.createElement('td');
+                tdATR.style.color = '#9ca3af';
+                tdATR.textContent = s.atr_20 ? '$' + (s.atr_20 / 100).toFixed(2) : '--';
+
+                // Stop Level
+                var tdStop = document.createElement('td');
+                tdStop.style.color = '#f85149';
+                tdStop.style.fontSize = '11px';
+                tdStop.textContent = s.stop_level ? '$' + (s.stop_level / 100).toFixed(2) + ' (' + s.stop_multiplier + 'N)' : '--';
+
+                // System badge
+                var tdSystem = document.createElement('td');
+                var badge = document.createElement('span');
+                badge.className = 'turtle-badge';
+                if (s.system.indexOf('breakout') !== -1) {
+                    badge.classList.add('breakout');
+                } else if (s.system === 'Approaching') {
+                    badge.classList.add('approaching');
+                } else {
+                    badge.classList.add('waiting');
+                }
+                badge.textContent = s.system;
+                tdSystem.appendChild(badge);
+
+                tr.appendChild(tdSym);
+                tr.appendChild(tdMkt);
+                tr.appendChild(tdPrice);
+                tr.appendChild(tdDC);
+                tr.appendChild(tdDist);
+                tr.appendChild(tdATR);
+                tr.appendChild(tdStop);
+                tr.appendChild(tdSystem);
+                frag.appendChild(tr);
+            }
+
+            if (filtered.length === 0) {
+                body.innerHTML = '<tr><td colspan="8" style="color:#6b7280; text-align:center; padding:16px;">No symbols match filter.</td></tr>';
+            } else {
+                body.innerHTML = '';
+                body.appendChild(frag);
+            }
+        },
+
         async fetchMarketOverview() {
             try {
                 var data = await this.api(this.CONFIG.API_BASE + '/api/recommendations/overview');
@@ -3745,6 +3958,7 @@
                 self.fetchMarketOverview();
                 self.fetchIndices();
                 self.fetchMarketNews();
+                self.fetchTurtleScan();
             }, this.CONFIG.POLL_SLOW_MS));
 
             // Very slow: 5min — data quality
@@ -3782,6 +3996,8 @@
             document.getElementById('btn-backfill').addEventListener('click', function() { self.triggerBackfill(); });
             document.getElementById('btn-refresh-recs').addEventListener('click', function() { self.refreshRecommendations(); });
             document.getElementById('btn-refresh-news').addEventListener('click', function() { self.refreshNews(); });
+            document.getElementById('btn-refresh-turtle').addEventListener('click', function() { self.fetchTurtleScan(); });
+            document.getElementById('turtle-filter').addEventListener('change', function() { self.fetchTurtleScan(); });
             document.getElementById('btn-buy').addEventListener('click', function() { self.placeTrade('buy'); });
             document.getElementById('btn-sell').addEventListener('click', function() { self.placeTrade('sell'); });
             document.getElementById('chart-symbol').addEventListener('change', function() { self.loadChart(); });
@@ -3837,6 +4053,7 @@
             this.fetchMarketOverview();
             this.fetchIndices();
             this.fetchMarketNews();
+            this.fetchTurtleScan();
             this.updateNextCheck();
 
             // Start polling
