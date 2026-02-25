@@ -14,9 +14,16 @@ logger = logging.getLogger(__name__)
 
 
 def _run_async(coro):
-    """Run an async coroutine from synchronous Celery task."""
+    """Run an async coroutine from synchronous Celery task.
+
+    Disposes the DB engine pool first so connections are created fresh on
+    this event loop (asyncpg connections are loop-bound).
+    """
+    from app.database import engine
+
     loop = asyncio.new_event_loop()
     try:
+        loop.run_until_complete(engine.dispose())
         return loop.run_until_complete(coro)
     finally:
         loop.close()
