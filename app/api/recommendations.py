@@ -37,8 +37,8 @@ async def get_recommendations():
             data["cached"] = True
             return data
 
-        # No cache — auto-trigger first generation (with lock to prevent spam)
-        if settings.anthropic_api_key and not error:
+        # No cache — auto-trigger generation (with lock to prevent spam)
+        if settings.anthropic_api_key:
             r2 = aioredis.from_url(settings.redis_url, decode_responses=True)
             lock = await r2.set("flashtrade:recs:generating", "1", ex=120, nx=True)
             await r2.aclose()
@@ -48,7 +48,7 @@ async def get_recommendations():
 
         return {
             "generated_at_utc": None,
-            "market_summary": "Generating first AI analysis now. Refresh in ~30 seconds." if not error else "Error during analysis. Will retry automatically.",
+            "market_summary": "Generating AI analysis now. Refresh in ~30 seconds." if not error else "Error during analysis. Retrying now...",
             "top_opportunities": [],
             "crypto_opportunities": [],
             "asx_opportunities": [],
