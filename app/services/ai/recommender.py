@@ -36,85 +36,13 @@ REDIS_KEY_RECOMMENDATIONS = "flashtrade:recommendations"
 REDIS_KEY_RECOMMENDATIONS_ERROR = "flashtrade:recommendations:last_error"
 REDIS_KEY_MARKET_OVERVIEW = "flashtrade:market_overview"
 
-SYSTEM_PROMPT = """You are a quantitative trading analyst for a small algorithmic trading system.
-You analyze technical indicators and market data across crypto, ASX stocks, US stocks, and UK stocks.
+SYSTEM_PROMPT = """Quantitative trading analyst. Analyze indicators and return JSON only.
 
-Your job: Identify the best trading opportunities in EACH market and rank them by conviction.
+Return EXACTLY 3 items per market array (12 total). Use "watch"/"hold" for weak setups.
+All prices in cents. Max $100/position, 2% risk, $10K portfolio. Keep reasoning to 1 sentence.
 
-CRITICAL: You MUST return EXACTLY 5 items in each of crypto_opportunities, asx_opportunities, us_opportunities, and uk_opportunities (20 total). No more, no less.
-
-Rules:
-- Each of the 4 arrays (crypto, asx, us, uk) MUST contain exactly 5 recommendation objects
-- Use "watch" or "hold" action with lower confidence for weaker setups — but still return 5 per market
-- Each recommendation needs: action (buy/sell/hold/watch), confidence (0.0-1.0), entry/target/stop prices, reasoning, risks
-- Be specific about price levels (in cents) and timeframes
-- Consider the current regime (trending/ranging/volatile) when recommending strategies
-- Account for market hours (ASX and US may be closed — crypto is 24/7)
-- Factor in existing open positions — avoid recommending buys for symbols already held
-- All prices are in cents (divide by 100 for dollar display)
-- Recommendations can include symbols NOT in the watched list — suggest new opportunities!
-
-Risk constraints:
-- Max $100 per position (10000 cents)
-- Max 2% portfolio risk per trade
-- Portfolio is $10,000 AUD starting capital
-
-Respond with ONLY valid JSON matching this exact schema (no markdown, no explanation outside the JSON):
-{
-  "market_summary": "2-3 sentence overall market assessment",
-  "crypto_opportunities": [
-    {
-      "symbol": "BTC",
-      "market": "crypto",
-      "action": "buy",
-      "confidence": 0.75,
-      "current_price_cents": 15000000,
-      "entry_price_cents": 14800000,
-      "target_price_cents": 16000000,
-      "stop_loss_cents": 14200000,
-      "reasoning": "Why this trade makes sense (1-2 sentences)",
-      "risk_notes": "What could go wrong (1 sentence)",
-      "timeframe": "1-3 days"
-    }
-  ],
-  "asx_opportunities": [
-    {
-      "symbol": "BHP.AX",
-      "market": "asx",
-      "action": "watch",
-      "confidence": 0.5,
-      "current_price_cents": 4500,
-      "reasoning": "Reason",
-      "risk_notes": "Risk note",
-      "timeframe": "1-5 days"
-    }
-  ],
-  "us_opportunities": [
-    {
-      "symbol": "AAPL",
-      "market": "us",
-      "action": "buy",
-      "confidence": 0.6,
-      "current_price_cents": 23000,
-      "reasoning": "Reason",
-      "risk_notes": "Risk note",
-      "timeframe": "2-5 days"
-    }
-  ],
-  "uk_opportunities": [
-    {
-      "symbol": "BARC.L",
-      "market": "uk",
-      "action": "watch",
-      "confidence": 0.5,
-      "current_price_cents": 22000,
-      "reasoning": "Reason",
-      "risk_notes": "Risk note",
-      "timeframe": "1-5 days"
-    }
-  ],
-  "symbols_to_avoid": ["DOGE", "WDS.AX"]
-}"""
+JSON schema (no markdown wrapping):
+{"market_summary":"1-2 sentences","crypto_opportunities":[{"symbol":"BTC","market":"crypto","action":"buy|sell|hold|watch","confidence":0.75,"current_price_cents":15000000,"entry_price_cents":14800000,"target_price_cents":16000000,"stop_loss_cents":14200000,"reasoning":"1 sentence","risk_notes":"1 sentence","timeframe":"1-3 days"}],"asx_opportunities":[...],"us_opportunities":[...],"uk_opportunities":[...],"symbols_to_avoid":["DOGE"]}"""
 
 
 class RecommendationAction(str, Enum):
@@ -184,7 +112,7 @@ class ClaudeRecommender:
 
         response = await client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=8000,
+            max_tokens=4000,
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": user_prompt}],
         )
@@ -350,7 +278,7 @@ class ClaudeRecommender:
                 f"{adx_str:>5} {s['bb_position']:>12} {s['regime']:<10} {s['last_signal']}"
             )
 
-        lines.append("\nAnalyze these symbols and provide exactly 5 recommendations per market (crypto, asx, us, uk) as JSON.")
+        lines.append("\n3 recs per market (crypto, asx, us, uk). JSON only, no markdown.")
         return "\n".join(lines)
 
     async def _load_ohlcv(
@@ -551,7 +479,7 @@ class MarketNews(BaseModel):
     australian_news: NewsItem
     notable_news: NewsItem
     generated_at_utc: str
-    model_used: str = "claude-sonnet-4-6"
+    model_used: str = "claude-haiku-4-5-20251001"
     token_usage: dict = Field(default_factory=dict)
 
 
@@ -571,10 +499,10 @@ async def generate_market_news() -> MarketNews:
     context_lines.append(f"\nTimestamp: {datetime.now(timezone.utc).isoformat()}")
 
     response = await client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1500,
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1000,
         system=NEWS_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": "\n".join(context_lines) + "\n\nGenerate 4 market news summaries."}],
+        messages=[{"role": "user", "content": "\n".join(context_lines) + "\n\n4 news summaries as JSON."}],
     )
 
     raw_text = response.content[0].text
